@@ -5,8 +5,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { create } from 'zustand';
 import * as z from 'zod';
 import { Button } from "./components/ui/button";
-import { Mail, User, Globe, Package, MapPin, ShoppingBag } from 'lucide-react';
+import { Mail, User, Globe, Package, MapPin, ShoppingBag, Book } from 'lucide-react';
 import { ImageSection } from './components/ImageSection';
+import Booklet from "./assets/booklet.png"
+import Intro from "./assets/studykey_box.png"
+import Image1 from "./assets/intro_1.jpeg"
+import Image2 from "./assets/intro_2.jpeg"
+import Image3 from "./assets/intro_3.jpeg"
 
 
 function debounce<T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void {
@@ -163,7 +168,7 @@ export default function App() {
 
                   <div className="h-full w-96 mx-auto">
                     <img
-                      src="/booklet.png"
+                      src={Booklet}
                       alt="Spanish E-Books"
                       className="w-full h-full object-contain"
                     />
@@ -188,12 +193,12 @@ export default function App() {
 
                   <div className="h-32 w-96 flex mx-auto">
                   <img
-                      src="/booklet.png"
+                      src={Booklet}
                       alt="Spanish Flashcard Set"
                       className="w-full h-full object-contain bg-transparent"
                     />
                     <img
-                      src="/studykey_box.png"
+                      src={Intro}
                       alt="Spanish Flashcard Set"
                       className="w-full h-full object-contain"
                     />
@@ -212,7 +217,7 @@ export default function App() {
             </div>
 
             {/* Right half - Images */}
-            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
           </div>
         )}
 
@@ -253,7 +258,7 @@ export default function App() {
                 </form>
               </div>
             </div>
-            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
           </div>
         )}
 
@@ -301,7 +306,7 @@ export default function App() {
                 </form>
               </div>
             </div>
-            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
           </div>
         )}
 
@@ -353,7 +358,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
           </div>
         )}
       </div>
