@@ -157,13 +157,13 @@ export default function App() {
                 {/* Option 1 */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold">Option 1: I want the FREE E-BOOK only</h2>
-                    <p className="text-gray-700">A fast boost for your Spanish practice</p>
+                    <h2 className="text-lg font-semibold text-center">Option 1: I want the FREE E-BOOK only</h2>
+                    <p className="text-gray-700 text-center">A fast boost for your Spanish practice</p>
                   </div>
 
-                  <div className="h-24 w-80">
+                  <div className="h-full w-96 mx-auto">
                     <img
-                      src="/placeholder.svg?height=100&width=300"
+                      src="/booklet.png"
                       alt="Spanish E-Books"
                       className="w-full h-full object-contain"
                     />
@@ -182,13 +182,18 @@ export default function App() {
                 {/* Option 2 */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold">Option 2: I want the PDF + FREE Flashcard Set!</h2>
-                    <p className="text-gray-700">A great mixture of fun and learning</p>
+                    <h2 className="text-lg font-semibold text-center">Option 2: I want the PDF + FREE Flashcard Set!</h2>
+                    <p className="text-gray-700 text-center">A great mixture of fun and learning</p>
                   </div>
 
-                  <div className="h-24 w-80">
+                  <div className="h-32 w-96 flex mx-auto">
+                  <img
+                      src="/booklet.png"
+                      alt="Spanish Flashcard Set"
+                      className="w-full h-full object-contain bg-transparent"
+                    />
                     <img
-                      src="/placeholder.svg?height=100&width=300"
+                      src="/studykey_box.png"
                       alt="Spanish Flashcard Set"
                       className="w-full h-full object-contain"
                     />
@@ -207,7 +212,7 @@ export default function App() {
             </div>
 
             {/* Right half - Images */}
-            <ImageSection />
+            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
           </div>
         )}
 
@@ -248,7 +253,7 @@ export default function App() {
                 </form>
               </div>
             </div>
-            <ImageSection />
+            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
           </div>
         )}
 
@@ -296,7 +301,7 @@ export default function App() {
                 </form>
               </div>
             </div>
-            <ImageSection />
+            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
           </div>
         )}
 
@@ -348,7 +353,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <ImageSection />
+            <ImageSection image1={"/intro_1.jpeg"} image2={"/intro_2.jpeg"} image3={"/intro_3.jpeg"} />
           </div>
         )}
       </div>
