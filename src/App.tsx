@@ -145,7 +145,7 @@ export default function App() {
     try {
       schema.parse(formData);
 
-      const response = await fetch("http://localhost:5000/submit-review",{
+      const response = await fetch(`${API_BASE_URL}/submit-review`,{
         method:"POST",
         headers: { 'Content-Type': 'application/json' },
         body:JSON.stringify({
