@@ -76,7 +76,7 @@ export default function App() {
     // setValidationStatus(null);
   }, [currentStep]);
 
-  const API_BASE_URL = 'http://localhost:5000';
+  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app/';
 
   const validateOrderId = async (orderId: string) => {
     if (!orderId) {

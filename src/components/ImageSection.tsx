@@ -14,7 +14,7 @@ export function ImageSection({ image1, image2, image3 }) {
               />
             </div>
           </div>
-          <div className="absolute w-[70%] h-[50%] top-[30%] right-[0%] transform rotate-12">
+          <div className="absolute w-[70%] h-[50%] top-[40%] right-[0%] transform rotate-[100deg]">
             <div className="w-full h-full overflow-hidden rounded-[50%] border-4 border-white shadow-lg">
               <img
                 src={image2}
@@ -23,7 +23,7 @@ export function ImageSection({ image1, image2, image3 }) {
               />
             </div>
           </div>
-          <div className="absolute w-[60%] h-[40%] bottom-[5%] left-[10%] transform -rotate-12">
+          <div className="absolute w-[60%] h-[40%] bottom-[10%] left-[-7%] transform rotate-[80deg]">
             <div className="w-full h-full overflow-hidden rounded-[50%] border-4 border-white shadow-lg">
               <img
                 src={image3}
