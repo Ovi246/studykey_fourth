@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { create } from 'zustand';
 import * as z from 'zod';
 import { Button } from "./components/ui/button";
-import { Mail, User, Globe, Package, MapPin, ShoppingBag, Book } from 'lucide-react';
+import { Mail, User, Globe, Package, MapPin, ShoppingBag, Book, Upload, Loader2 } from 'lucide-react';
 import { ImageSection } from './components/ImageSection';
 import Booklet from "./assets/booklet.png"
 import Intro from "./assets/studykey_box.png"
@@ -46,6 +46,12 @@ interface AppStore {
   };
   setFormData: (data: Partial<AppStore['formData']>) => void;
   setAddressFormData: (data: Partial<AppStore['formData']['address']>) => void;
+  screenshotUrl: string | null;
+  setScreenshotUrl: (url: string | null) => void;
+  uploadProgress: { isUploading: boolean; progress: number };
+  setUploadProgress: (progress: Partial<AppStore['uploadProgress']>) => void;
+  screenshotFile: File | null;
+  setScreenshotFile: (file: File | null) => void;
 }
 
 const useAppStore = create<AppStore>((set) => ({
@@ -56,6 +62,12 @@ const useAppStore = create<AppStore>((set) => ({
   },
   setFormData: (data: Partial<AppStore['formData']>) => set((state) => ({ formData: { ...state.formData, ...data } })),
   setAddressFormData: (data: Partial<AppStore['formData']['address']>) => set((state) => ({ formData: { ...state.formData, address: { ...state.formData.address, ...data } } })),
+  screenshotUrl: null,
+  setScreenshotUrl: (url) => set({ screenshotUrl: url }),
+  uploadProgress: { isUploading: false, progress: 0 },
+  setUploadProgress: (progress: Partial<AppStore['uploadProgress']>) => set((state) => ({ uploadProgress: { ...state.uploadProgress, ...progress } })),
+  screenshotFile: null,
+  setScreenshotFile: (file: File | null) => set({ screenshotFile: file }),
 }));
 
 const queryClient = new QueryClient();
@@ -64,7 +76,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('intro');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean; asin?: string } | null>(null);
-  const { selectedOption, setSelectedOption, formData, setFormData, setAddressFormData } = useAppStore();
+  const { selectedOption, setSelectedOption, formData, setFormData, setAddressFormData, screenshotUrl, setScreenshotUrl, uploadProgress, screenshotFile, setScreenshotFile, setUploadProgress } = useAppStore();
   const [isValidating, setIsValidating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -74,9 +86,15 @@ export default function App() {
     setFieldErrors({});
     // Decide if you want to reset order ID validation status on step change
     // setValidationStatus(null);
-  }, [currentStep]);
+    // Reset screenshot state when leaving bonus form
+    if (currentStep !== 'bonusForm') {
+       setScreenshotFile(null);
+       setScreenshotUrl(null);
+       setUploadProgress({ isUploading: false, progress: 0 });
+    }
+  }, [currentStep, setScreenshotFile, setScreenshotUrl, setUploadProgress]); // Add dependencies
 
-  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app';
+  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app/';
 
   const validateOrderId = async (orderId: string) => {
     if (!orderId) {
@@ -213,6 +231,50 @@ export default function App() {
       }
   };
 
+  // Moved the core upload logic into a separate function
+  const uploadScreenshot = async (file: File): Promise<string> => {
+       const formData = new FormData();
+       formData.append('screenshot', file);
+
+       return new Promise((resolve, reject) => {
+           const xhr = new XMLHttpRequest();
+           xhr.open('POST', `${API_BASE_URL}/upload-screenshot`, true);
+
+           xhr.upload.onprogress = (event) => {
+             if (event.lengthComputable) {
+               const progress = Math.round((event.loaded * 100) / event.total);
+               setUploadProgress({ isUploading: true, progress });
+             }
+           };
+
+           xhr.onload = () => {
+             if (xhr.status === 200) {
+               const response = JSON.parse(xhr.responseText);
+               if (response.success && response.url) {
+                 setUploadProgress({ isUploading: false, progress: 100 });
+                 resolve(response.url); // Resolve the promise with the URL
+               } else {
+                 setUploadProgress({ isUploading: false, progress: 0 });
+                 const errorMessage = response.message || 'Upload failed';
+                 reject(new Error(errorMessage)); // Reject on backend failure
+               }
+             } else {
+                setUploadProgress({ isUploading: false, progress: 0 });
+                const errorResponse = JSON.parse(xhr.responseText || '{}');
+                const errorMessage = errorResponse.message || 'Upload failed';
+                reject(new Error(errorMessage)); // Reject on non-200 status
+             }
+           };
+
+           xhr.onerror = () => {
+             setUploadProgress({ isUploading: false, progress: 0 });
+             reject(new Error('Upload failed. Network error.')); // Reject on network error
+           };
+
+           xhr.send(formData);
+       });
+  };
+
 
   const handleBonusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,7 +333,40 @@ export default function App() {
          return; // Prevent submission
       }
 
-      // If we reach here, all validations passed, and order ID is validated
+      let finalScreenshotUrl = screenshotUrl; // Start with the existing URL if already uploaded
+
+      // If a new file is selected and not yet uploaded, trigger the upload
+      if (screenshotFile && !screenshotUrl) {
+          setErrorMessage(null); // Clear general error before upload
+          setFieldErrors(prev => { // Clear screenshot error before upload
+             const newState = { ...prev };
+             delete newState.screenshot;
+             return newState;
+         });
+          try {
+              // Upload the screenshot and get the URL
+              finalScreenshotUrl = await uploadScreenshot(screenshotFile);
+              setScreenshotUrl(finalScreenshotUrl); // Update store with the new URL
+          } catch (uploadError) {
+              console.error("Screenshot upload error during submit:", uploadError);
+              const errorMsg = uploadError instanceof Error ? uploadError.message : 'Failed to upload screenshot. Please try again.';
+               setFieldErrors(prev => ({ ...prev, screenshot: errorMsg }));
+              setErrorMessage('Screenshot upload failed. Please fix the error and try again.'); // Set general error message
+               setScreenshotFile(null); // Clear file on upload error during submit
+               if (document.getElementById('screenshot-upload')) { // Reset the file input element
+                  (document.getElementById('screenshot-upload') as HTMLInputElement).value = '';
+               }
+              return; // Stop submission if upload fails
+          }
+      } else if (!screenshotUrl) {
+          // If no file selected and no URL exists, show error
+           setFieldErrors(prev => ({ ...prev, screenshot: 'Please upload a screenshot of your order' }));
+           setErrorMessage('Please upload a screenshot before submitting.');
+           return;
+      }
+
+
+      // If we reach here, all validations passed, order ID is validated, and screenshotUrl is available
       // Construct the payload matching the Bonus object structure
       const bonusPayload = {
         name: formData.name,
@@ -281,9 +376,11 @@ export default function App() {
         address: formData.address,
         productSet: formData.set, // Map set to productSet
         phoneNumber: formData.phoneNumber,
+        screenshotUrl: finalScreenshotUrl, // Use the obtained URL
         // createdAt will be set on the backend
       };
 
+      // Perform the main form submission
       const response = await fetch(`${API_BASE_URL}/bonus-claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -295,7 +392,9 @@ export default function App() {
         throw new Error(errorBody.message || 'Failed to submit form. Please try again.');
       }
 
-      setCurrentStep('bonusThankYou');
+      console.log('Bonus submission successful');
+      setCurrentStep('bonusThankYou'); // Navigate on success
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
@@ -525,6 +624,124 @@ export default function App() {
       // Add other countries if needed in the future
   ];
 
+  const FileUploadWithProgress = () => {
+    const {
+      uploadProgress, // Need uploadProgress here to show the progress bar
+      screenshotFile, // Still need screenshotFile to hold the selected file temporarily
+      setScreenshotFile,
+      screenshotUrl, // Need screenshotUrl here to show success/uploaded state
+    } = useAppStore();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      // Clear previous upload status/errors when selecting a new file
+      setUploadProgress({ isUploading: false, progress: 0 });
+      setScreenshotUrl(null); // Clear previously uploaded URL
+       setFieldErrors(prev => { // Clear screenshot error
+            const newState = { ...prev };
+            delete newState.screenshot;
+            return newState;
+        });
+
+      if (file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          alert('Please upload an image file');
+          setScreenshotFile(null); // Clear the selected file state
+          if (fileInputRef.current) { fileInputRef.current.value = ''; } // Reset input
+          return;
+        }
+        // Validate file size (e.g., 5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size should be less than 5MB');
+           setScreenshotFile(null); // Clear the selected file state
+           if (fileInputRef.current) { fileInputRef.current.value = ''; } // Reset input
+          return;
+        }
+        // If validation passes, set the file in state - DO NOT start upload here
+        setScreenshotFile(file);
+      } else {
+          // If file selection is cancelled, clear the state
+          setScreenshotFile(null);
+      }
+    };
+
+    return (
+      <div className="space-y-4 py-2">
+        <div className="  ">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+            id="screenshot-upload"
+          />
+          <label
+            htmlFor="screenshot-upload"
+            className={`flex items-center space-x-2 px-4 py-2 border rounded-lg cursor-pointer ${
+               uploadProgress.isUploading ? 'bg-gray-100 text-gray-500 cursor-not-allowed' // Dim and disable while uploading (though button handles primary disable)
+               : fieldErrors.screenshot ? 'border-red-500 text-red-500' // Style error state
+               : screenshotUrl ? 'border-green-500 text-green-700' // Style success state
+               : 'border-gray-300 hover:bg-gray-50 text-gray-700' // Default state
+             }`}
+             // Label is not truly disabled, but cursor indicates state
+          >
+            {uploadProgress.isUploading ? (
+                 <Loader2 className="w-5 h-5 animate-spin" />
+             ) : screenshotUrl ? (
+                 // Optionally show a success icon if URL exists
+                 <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+             ) : (
+                <Upload className="w-5 h-5" />
+             )}
+            <span>
+                {uploadProgress.isUploading ? 'Uploading...'
+                 : screenshotUrl ? 'Screenshot Uploaded' // Text after successful upload
+                 : screenshotFile ? 'File Selected (Ready to Upload)' // Text after selecting but before uploading
+                 : 'Choose Screenshot' // Initial text
+                }
+            </span>
+          </label>
+          {/* Removed the explicit Upload Button */}
+        </div>
+
+        {/* Show selected file name if a file is chosen but not yet uploaded */}
+        {screenshotFile && !uploadProgress.isUploading && !screenshotUrl && (
+           <div className="text-sm text-gray-600">
+            Selected file: {screenshotFile.name}
+          </div>
+        )}
+
+         {/* Show selected file name after upload success */}
+         {screenshotFile && !uploadProgress.isUploading && screenshotUrl && (
+             <div className="text-sm text-gray-600">
+               File: {screenshotFile.name}
+             </div>
+         )}
+
+
+        {/* Progress bar */}
+        {uploadProgress.isUploading && uploadProgress.progress > 0 && ( // Only show if uploading and progress has started
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2"> {/* Added margin-top for spacing */}
+            <div
+              className="bg-[#ff5733] h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress.progress}%` }}
+            />
+          </div>
+        )}
+
+        {/* Success message - Now the label text also indicates success */}
+        {/* Removed explicit success message div as label text now covers it */}
+
+         {/* Field error for screenshot */}
+         {fieldErrors.screenshot && (
+           <p className="text-red-500 text-sm mt-1">{fieldErrors.screenshot}</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -813,6 +1030,15 @@ export default function App() {
                        {/* Field error is displayed by renderFormInput */}
                     </div>
 
+                    {/* Screenshot Upload */}
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Upload Order Screenshot
+                      </label>
+                      <FileUploadWithProgress />
+                       {/* Field error for screenshot is displayed by FileUploadWithProgress */}
+                    </div>
+
                   </div> {/* End of two-column grid */}
 
                    {/* General error message for submission issues not tied to a specific field */}
@@ -820,13 +1046,12 @@ export default function App() {
                     <p className="text-red-500 text-sm text-center mt-4">{errorMessage}</p>
                   )}
 
-
                   <div className="space-y-4">
                     <Button
                       type="submit"
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                       // Disable button if currently validating or if there are ANY field errors
-                      disabled={isValidating || Object.keys(fieldErrors).length > 0}
+                       // Disable button if currently validating, has ANY field errors, is uploading, OR screenshotFile/screenshotUrl is NOT available
+                      disabled={isValidating || Object.keys(fieldErrors).length > 0 || uploadProgress.isUploading || (!screenshotFile && !screenshotUrl)}
                     >
                       Claim My Bonus Set
                     </Button>
