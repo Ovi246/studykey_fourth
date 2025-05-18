@@ -1024,12 +1024,6 @@ export default function App() {
                         {/* Field error is displayed by renderFormInput */}
                     </div>
 
-                    {/* Set */}
-                    <div className="space-y-2 md:col-span-2">
-                      {renderFormInput("Set", "set", <Package size={20} />)}
-                       {/* Field error is displayed by renderFormInput */}
-                    </div>
-
                     {/* Screenshot Upload */}
                     <div className="space-y-2 md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700">
