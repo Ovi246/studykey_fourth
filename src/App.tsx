@@ -1160,7 +1160,6 @@ export default function App() {
 
                 <div className="space-y-4 text-gray-600">
                   <p className="text-lg font-semibold">THANK YOU {formData.firstName || 'NAME'}, YOUR STUDY KEY PDF IS ON ITS WAY!</p>
-                  <p className="text-lg font-semibold">THANK YOU {formData.name || 'NAME'}, YOUR STUDY KEY PDF IS ON ITS WAY!</p>
                   <p>CHECK YOUR INBOX FOR THE DOWNLOADABLE LINK - AND GET READY TO POWER UP YOUR LANGUAGE SKILLS.</p>
                   <p className="font-semibold">DIDN'T RECEIVE IT?</p>
                   <p>CHECK YOUR SPAM/JUNK FOLDER.</p>
@@ -1270,13 +1269,6 @@ export default function App() {
                 <p className="text-gray-600">Check your email for the PDF and expect your flashcard set soon!</p>
 
                 <div className="space-y-4">
-                  <Button
-                    className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                    onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
-                  >
-                    Get Bonus Flashcard Set
-                  </Button>
-
                   <Button
                     className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
                     onClick={() => setCurrentStep('intro')}
