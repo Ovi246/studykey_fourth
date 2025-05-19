@@ -13,6 +13,8 @@ import Image1 from "./assets/intro_1.jpeg"
 import Image2 from "./assets/intro_2.jpeg"
 import Image3 from "./assets/intro_3.jpeg"
 
+// Add this near the top of the file, after the imports
+const phoneRegexFormatted = /^\(\d{3}\) \d{3}-\d{4}$/;
 
 function debounce<T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout>;
@@ -31,7 +33,8 @@ interface AppStore {
     reviewLink?: string;
     shippingName?: string;
     mailingAddress?: string;
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     language?: string;
     set?: string;
     asin?: string;
@@ -52,6 +55,10 @@ interface AppStore {
   setUploadProgress: (progress: Partial<AppStore['uploadProgress']>) => void;
   screenshotFile: File | null;
   setScreenshotFile: (file: File | null) => void;
+  reviewScreenshotUrl: string | null;
+  setReviewScreenshotUrl: (url: string | null) => void;
+  reviewScreenshotFile: File | null;
+  setReviewScreenshotFile: (file: File | null) => void;
 }
 
 const useAppStore = create<AppStore>((set) => ({
@@ -68,15 +75,19 @@ const useAppStore = create<AppStore>((set) => ({
   setUploadProgress: (progress: Partial<AppStore['uploadProgress']>) => set((state) => ({ uploadProgress: { ...state.uploadProgress, ...progress } })),
   screenshotFile: null,
   setScreenshotFile: (file: File | null) => set({ screenshotFile: file }),
+  reviewScreenshotUrl: null,
+  setReviewScreenshotUrl: (url) => set({ reviewScreenshotUrl: url }),
+  reviewScreenshotFile: null,
+  setReviewScreenshotFile: (file: File | null) => set({ reviewScreenshotFile: file }),
 }));
 
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('intro');
+  const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'reviewForm' | 'bonusThankYou'>('intro');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean; asin?: string } | null>(null);
-  const { selectedOption, setSelectedOption, formData, setFormData, setAddressFormData, screenshotUrl, setScreenshotUrl, uploadProgress, screenshotFile, setScreenshotFile, setUploadProgress } = useAppStore();
+  const { selectedOption, setSelectedOption, formData, setFormData, setAddressFormData, screenshotUrl, setScreenshotUrl, uploadProgress, screenshotFile, setScreenshotFile, setUploadProgress, reviewScreenshotUrl, setReviewScreenshotUrl, reviewScreenshotFile, setReviewScreenshotFile } = useAppStore();
   const [isValidating, setIsValidating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -156,8 +167,9 @@ export default function App() {
 
     const schema = z.object({
       email: z.string().email("Please enter a valid email address"),
-      name: z.string().min(1, "Name is required"),
-      language: z.string().min(1, "Language is required")
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      language: z.string().min(1, "Please select a PDF language")
     });
 
     try {
@@ -167,7 +179,8 @@ export default function App() {
         method:"POST",
         headers: { 'Content-Type': 'application/json' },
         body:JSON.stringify({
-          name: formData.name,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           language: formData.language,
           email: formData.email,
           type: 'pdf' // Add type to distinguish from bonus submission
@@ -279,108 +292,50 @@ export default function App() {
   const handleBonusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    // DO NOT clear fieldErrors here. We want to show errors from onBlur validation.
-    // setFieldErrors({});
-
-    // Regex for US (5 digits, optional +4) and Canadian (A1A A1A) zip/postal codes
-    const usZipRegex = /^\d{5}(-\d{4})?$/;
-    const caPostalCodeRegex = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
-
-    // Regex for US (###) ###-#### and Canadian (###) ###-#### phone numbers
-    const phoneRegexFormatted = /^\(\d{3}\)\s\d{3}-\d{4}$/;
-
-    const schema = z.object({
-      amazonOrder: z.string().min(1, "Amazon Order Number is required"),
-      name: z.string().min(1, "Name is required"),
-      language: z.string().min(1, "Language is required"),
-      set: z.string().min(1, "Set is required"),
-      email: z.string().email("Please enter a valid email address"),
-      phoneNumber: z.string().regex(phoneRegexFormatted, "Please enter a valid phone number (e.g., (123) 456-7890)"),
-      address: z.object({
-        street: z.string().min(1, "Street Address is required"),
-        city: z.string().min(1, "City is required"),
-        state: z.string().min(1, "State/Province is required"),
-        country: z.string().min(1, "Country is required"), // Country is required for zip validation
-        zipCode: z.string().refine(value => {
-          // This refine handles validation on submit based on the CURRENT country value in formData
-          if (formData.address?.country === 'US') {
-            return usZipRegex.test(value || '');
-          }
-          if (formData.address?.country === 'CA') {
-             const cleanedValue = value?.replace(/[- ]/g, '') || '';
-             return caPostalCodeRegex.test(cleanedValue);
-          }
-          // If country is not US/CA, just check if zip code is not empty
-          return (value || '').length > 0;
-        }, "Please enter a valid Zip/Postal Code for the selected country."),
-      })
-    });
 
     try {
-      // Run full form validation on submit
-      schema.parse(formData);
-
-      // Also check if there are any errors from onBlur validations
-       if (Object.keys(fieldErrors).length > 0) {
-           setErrorMessage('Please fix the errors above before submitting.');
-           return; // Prevent submission if there are existing field errors
-       }
-
-      // After Zod validation and fieldError check pass, check Order ID validation status
-      if (!validationStatus?.isValid) {
-         // Set a specific field error for amazonOrder if it wasn't validated
-         setFieldErrors(prev => ({ ...prev, amazonOrder: 'Please validate your Amazon order ID first.' }));
-         return; // Prevent submission
+      // Check if we have a valid review link
+      if (!formData.reviewLink || !formData.asin) {
+        setErrorMessage('Please validate your order ID to get the review link.');
+        return;
       }
 
-      let finalScreenshotUrl = screenshotUrl; // Start with the existing URL if already uploaded
+      let finalReviewScreenshotUrl = reviewScreenshotUrl;
 
-      // If a new file is selected and not yet uploaded, trigger the upload
-      if (screenshotFile && !screenshotUrl) {
-          setErrorMessage(null); // Clear general error before upload
-          setFieldErrors(prev => { // Clear screenshot error before upload
-             const newState = { ...prev };
-             delete newState.screenshot;
-             return newState;
-         });
-          try {
-              // Upload the screenshot and get the URL
-              finalScreenshotUrl = await uploadScreenshot(screenshotFile);
-              setScreenshotUrl(finalScreenshotUrl); // Update store with the new URL
-          } catch (uploadError) {
-              console.error("Screenshot upload error during submit:", uploadError);
-              const errorMsg = uploadError instanceof Error ? uploadError.message : 'Failed to upload screenshot. Please try again.';
-               setFieldErrors(prev => ({ ...prev, screenshot: errorMsg }));
-              setErrorMessage('Screenshot upload failed. Please fix the error and try again.'); // Set general error message
-               setScreenshotFile(null); // Clear file on upload error during submit
-               if (document.getElementById('screenshot-upload')) { // Reset the file input element
-                  (document.getElementById('screenshot-upload') as HTMLInputElement).value = '';
-               }
-              return; // Stop submission if upload fails
-          }
-      } else if (!screenshotUrl) {
-          // If no file selected and no URL exists, show error
-           setFieldErrors(prev => ({ ...prev, screenshot: 'Please upload a screenshot of your order' }));
-           setErrorMessage('Please upload a screenshot before submitting.');
-           return;
+      // Upload review screenshot if needed
+      if (reviewScreenshotFile && !reviewScreenshotUrl) {
+        try {
+          finalReviewScreenshotUrl = await uploadScreenshot(reviewScreenshotFile);
+          setReviewScreenshotUrl(finalReviewScreenshotUrl);
+        } catch (uploadError) {
+          console.error("Review screenshot upload error:", uploadError);
+          const errorMsg = uploadError instanceof Error ? uploadError.message : 'Failed to upload review screenshot.';
+          setFieldErrors(prev => ({ ...prev, reviewScreenshot: errorMsg }));
+          setErrorMessage('Review screenshot upload failed. Please try again.');
+          return;
+        }
       }
 
+      // Check if review screenshot is available
+      if (!finalReviewScreenshotUrl) {
+        setErrorMessage('Please upload your review screenshot.');
+        return;
+      }
 
-      // If we reach here, all validations passed, order ID is validated, and screenshotUrl is available
-      // Construct the payload matching the Bonus object structure
+      // Construct the final payload
       const bonusPayload = {
-        name: formData.name,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         language: formData.language,
         email: formData.email,
-        orderId: formData.amazonOrder, // Map amazonOrder to orderId
+        orderId: formData.amazonOrder,
         address: formData.address,
-        productSet: formData.set, // Map set to productSet
+        productSet: formData.set,
         phoneNumber: formData.phoneNumber,
-        screenshotUrl: finalScreenshotUrl, // Use the obtained URL
-        // createdAt will be set on the backend
+        reviewScreenshotUrl: finalReviewScreenshotUrl,
       };
 
-      // Perform the main form submission
+      // Submit the form
       const response = await fetch(`${API_BASE_URL}/bonus-claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -392,9 +347,7 @@ export default function App() {
         throw new Error(errorBody.message || 'Failed to submit form. Please try again.');
       }
 
-      console.log('Bonus submission successful');
-      setCurrentStep('bonusThankYou'); // Navigate on success
-
+      setCurrentStep('bonusThankYou');
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
@@ -624,6 +577,13 @@ export default function App() {
       // Add other countries if needed in the future
   ];
 
+  // Update the language options to use lowercase values
+  const languageOptions = [
+    { value: '', label: 'Select Language' },
+    { value: 'English', label: 'English' },
+    { value: 'Spanish', label: 'Spanish' },
+  ];
+
   const FileUploadWithProgress = () => {
     const {
       uploadProgress, // Need uploadProgress here to show the progress bar
@@ -743,6 +703,115 @@ export default function App() {
     );
   };
 
+  // Add new component for review screenshot upload
+  const ReviewScreenshotUpload = () => {
+    const {
+      uploadProgress,
+      reviewScreenshotFile,
+      setReviewScreenshotFile,
+      reviewScreenshotUrl,
+      setReviewScreenshotUrl,
+      setUploadProgress,
+    } = useAppStore();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      setUploadProgress({ isUploading: false, progress: 0 });
+      setReviewScreenshotUrl(null);
+      setFieldErrors(prev => {
+        const newState = { ...prev };
+        delete newState.reviewScreenshot;
+        return newState;
+      });
+
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          alert('Please upload an image file');
+          setReviewScreenshotFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size should be less than 5MB');
+          setReviewScreenshotFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+        setReviewScreenshotFile(file);
+      } else {
+        setReviewScreenshotFile(null);
+      }
+    };
+
+    return (
+      <div className="space-y-4 py-2">
+        <div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+            id="review-screenshot-upload"
+          />
+          <label
+            htmlFor="review-screenshot-upload"
+            className={`flex items-center space-x-2 px-4 py-2 border rounded-lg cursor-pointer ${
+              uploadProgress.isUploading ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+              : fieldErrors.reviewScreenshot ? 'border-red-500 text-red-500'
+              : reviewScreenshotUrl ? 'border-green-500 text-green-700'
+              : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+            }`}
+          >
+            {uploadProgress.isUploading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : reviewScreenshotUrl ? (
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <Upload className="w-5 h-5" />
+            )}
+            <span>
+              {uploadProgress.isUploading ? 'Uploading...'
+               : reviewScreenshotUrl ? 'Review Screenshot Uploaded'
+               : reviewScreenshotFile ? 'File Selected (Ready to Upload)'
+               : 'Upload Review Screenshot'
+              }
+            </span>
+          </label>
+        </div>
+
+        {reviewScreenshotFile && !uploadProgress.isUploading && !reviewScreenshotUrl && (
+          <div className="text-sm text-gray-600">
+            Selected file: {reviewScreenshotFile.name}
+          </div>
+        )}
+
+        {reviewScreenshotFile && !uploadProgress.isUploading && reviewScreenshotUrl && (
+          <div className="text-sm text-gray-600">
+            File: {reviewScreenshotFile.name}
+          </div>
+        )}
+
+        {uploadProgress.isUploading && uploadProgress.progress > 0 && (
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+            <div
+              className="bg-[#ff5733] h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress.progress}%` }}
+            />
+          </div>
+        )}
+
+        {fieldErrors.reviewScreenshot && (
+          <p className="text-red-500 text-sm mt-1">{fieldErrors.reviewScreenshot}</p>
+        )}
+      </div>
+    );
+  };
+
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen w-full bg-[#e0f2fe]">
@@ -824,29 +893,43 @@ export default function App() {
               <div className="max-w-xl mx-auto space-y-8">
                 <div className="text-center space-y-2">
                   <h2 className="text-2xl font-bold">Get Your Free PDF</h2>
-                  <p className="text-gray-600">Yay! You chose the free PDF! We're excited to send it your way - all we need is the best email to send it to. </p>
+                  <p className="text-gray-600">Yay! You chose the free PDF! We're excited to send it your way - all we need is the best email to send it to.</p>
                 </div>
 
                 <form onSubmit={handlePdfSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    {renderFormInput("Your Name", "name", <User size={20} />)}
-                     {fieldErrors.name && (
-                       <p className="text-red-500 text-sm mt-1">{fieldErrors.name}</p>
-                     )}
+                    {renderFormInput("First Name", "firstName", <User size={20} />)}
+                    {fieldErrors.firstName && (
+                      <p className="text-red-500 text-sm mt-1">{fieldErrors.firstName}</p>
+                    )}
                   </div>
-                   <div className="space-y-2">
-                     {renderFormInput("Language", "language", <Globe size={20} />)}
-                     {fieldErrors.language && (
-                        <p className="text-red-500 text-sm mt-1">{fieldErrors.language}</p>
-                     )}
-                   </div>
                   <div className="space-y-2">
-                     {renderFormInput("Email Address", "email", <Mail size={20} />, "email")}
-                     {fieldErrors.email && (
-                        <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
-                     )}
+                    {renderFormInput("Last Name", "lastName", <User size={20} />)}
+                    {fieldErrors.lastName && (
+                      <p className="text-red-500 text-sm mt-1">{fieldErrors.lastName}</p>
+                    )}
                   </div>
-
+                  <div className="space-y-2">
+                    {renderSelectInput(
+                      "Select PDF Language",
+                      "language",
+                      <Globe size={20} />,
+                      languageOptions,
+                      () => validateField('language', formData.language, z.string().min(1, "Please select a PDF language"))
+                    )}
+                    <p className="text-sm text-gray-500 mt-1">
+                      Please select which PDF version you would like to receive - English or Spanish
+                    </p>
+                    {fieldErrors.language && (
+                      <p className="text-red-500 text-sm mt-1">{fieldErrors.language}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {renderFormInput("Email Address", "email", <Mail size={20} />, "email")}
+                    {fieldErrors.email && (
+                      <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
+                    )}
+                  </div>
 
                   {errorMessage && (
                     <p className="text-red-500 text-sm">{errorMessage}</p>
@@ -902,29 +985,54 @@ export default function App() {
                         "amazonOrder",
                         <ShoppingBag size={20} />,
                         "text",
-                        // onBlur for Order ID validation
                         () => formData.amazonOrder && validateOrderId(formData.amazonOrder)
                       )}
-                       {/* Field error for amazonOrder is displayed by renderFormInput */}
-                       {/* Spinner/Check/X are also inline now */}
                     </div>
 
-                    {/* Name */}
+                    {/* First Name */}
                     <div className="space-y-2">
-                      {renderFormInput("Your Name", "name", <User size={20} />)}
-                       {/* Field error is displayed by renderFormInput */}
+                      {renderFormInput("First Name", "firstName", <User size={20} />)}
                     </div>
 
-                    {/* Language */}
+                    {/* Last Name */}
                     <div className="space-y-2">
-                      {renderFormInput("Language", "language", <Globe size={20} />)}
-                       {/* Field error is displayed by renderFormInput */}
+                      {renderFormInput("Last Name", "lastName", <User size={20} />)}
+                    </div>
+
+                    {/* Language Dropdown and Email in the same row */}
+                    <div className="space-y-2">
+                      {renderSelectInput(
+                        "Select Language",
+                        "language",
+                        <Globe size={20} />,
+                        languageOptions,
+                        () => validateField('language', formData.language, z.string().min(1, "Please select a language"))
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">
+                        Please select your preferred language for the bonus set
+                      </p>
+                      {fieldErrors.language && (
+                        <p className="text-red-500 text-sm mt-1">{fieldErrors.language}</p>
+                      )}
+                    </div>
+
+                    {/* Email field beside language dropdown */}
+                    <div className="space-y-2">
+                      {renderFormInput(
+                        "Email Address",
+                        "email",
+                        <Mail size={20} />,
+                        "email",
+                        () => validateField('email', formData.email, z.string().email("Please enter a valid email address"))
+                      )}
+                      {fieldErrors.email && (
+                        <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
+                      )}
                     </div>
 
                     {/* Street Address */}
                     <div className="space-y-2 md:col-span-2">
                       {renderFormInput("Street Address", "address.street", <MapPin size={20} />)}
-                       {/* Field error is displayed by renderFormInput */}
                     </div>
 
                     {/* City */}
@@ -934,10 +1042,8 @@ export default function App() {
                         "address.city",
                         <MapPin size={20} />,
                         "text",
-                         // onBlur validation for City
-                        () => validateField('address.city', formData.address?.city, z.string().min(1, "City is required"))
+                         () => validateField('address.city', formData.address?.city, z.string().min(1, "City is required"))
                       )}
-                       {/* Field error is displayed by renderFormInput */}
                     </div>
 
                     {/* State/Province */}
@@ -947,23 +1053,19 @@ export default function App() {
                          "address.state",
                          <MapPin size={20} />,
                          "text",
-                          // onBlur validation for State/Province
-                         () => validateField('address.state', formData.address?.state, z.string().min(1, "State/Province is required"))
-                       )}
-                       {/* Field error is displayed by renderFormInput */}
+                          () => validateField('address.state', formData.address?.state, z.string().min(1, "State/Province is required"))
+                        )}
                     </div>
 
                     {/* Country (Dropdown) */}
                     <div className="space-y-2">
                        {renderSelectInput(
-                           "Select Country", // Placeholder for dropdown
+                           "Select Country",
                            "address.country",
                            <Globe size={20} />,
                            countryOptions,
-                           // Optional: onBlur validation for Country (checking if selected)
                            () => validateField('address.country', formData.address?.country, z.string().min(1, "Country is required"))
                        )}
-                       {/* Field error is displayed by renderSelectInput */}
                     </div>
 
                     {/* Zip/Postal Code */}
@@ -973,14 +1075,12 @@ export default function App() {
                         "address.zipCode",
                         <MapPin size={20} />,
                         "text",
-                         // onBlur validation for Zip/Postal Code
                          () => {
                              const usZipRegex = /^\d{5}(-\d{4})?$/;
                              const caPostalCodeRegex = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
 
                              validateField('address.zipCode', formData.address?.zipCode,
                                 z.string().refine(value => {
-                                // Use the *current* country value from formData for validation
                                 if (formData.address?.country === 'US') {
                                     return usZipRegex.test(value || '');
                                 }
@@ -988,19 +1088,15 @@ export default function App() {
                                      const cleanedValue = value?.replace(/[- ]/g, '') || '';
                                      return caPostalCodeRegex.test(cleanedValue);
                                 }
-                                // If country is not US/CA or not selected, still require a non-empty value
                                 return (value || '').length > 0;
-                                }, "Invalid Zip/Postal Code for selected country.") // More specific message
+                                }, "Invalid Zip/Postal Code for selected country.")
                              );
 
-                             // Re-validate State if Zip Code validation happens on blur and country is US/CA
-                             // This ensures consistency if country changes
                              if (formData.address?.country === 'US' || formData.address?.country === 'CA') {
                                  validateField('address.state', formData.address?.state, z.string().min(1, "State/Province is required"));
                              }
                          }
                       )}
-                       {/* Field error is displayed by renderFormInput */}
                     </div>
 
                     {/* Phone Number */}
@@ -1008,46 +1104,42 @@ export default function App() {
                       {renderFormInput(
                         "Phone Number",
                         "phoneNumber",
-                        <User size={20} />, // Or a phone icon if available
+                        <User size={20} />,
                         "tel",
-                        // onBlur validation for Phone Number
                         () => validateField('phoneNumber', formData.phoneNumber, z.string().regex(phoneRegexFormatted, "Please enter a valid phone number (e.g., (123) 456-7890)"))
                         ,
-                        handlePhoneNumberChange // Custom onChange for formatting
+                        handlePhoneNumberChange
                       )}
-                       {/* Field error is displayed by renderFormInput */}
                     </div>
 
-                    {/* Email Address */}
-                    <div className="space-y-2">
-                       {renderFormInput("Email Address", "email", <Mail size={20} />, "email")}
-                        {/* Field error is displayed by renderFormInput */}
-                    </div>
+                  </div>
 
-                    {/* Screenshot Upload */}
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Upload Order Screenshot
-                      </label>
-                      <FileUploadWithProgress />
-                       {/* Field error for screenshot is displayed by FileUploadWithProgress */}
-                    </div>
-
-                  </div> {/* End of two-column grid */}
-
-                   {/* General error message for submission issues not tied to a specific field */}
                   {errorMessage && (
                     <p className="text-red-500 text-sm text-center mt-4">{errorMessage}</p>
                   )}
 
                   <div className="space-y-4">
                     <Button
-                      type="submit"
+                      type="button"
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                       // Disable button if currently validating, has ANY field errors, is uploading, OR screenshotFile/screenshotUrl is NOT available
-                      disabled={isValidating || Object.keys(fieldErrors).length > 0 || uploadProgress.isUploading || (!screenshotFile && !screenshotUrl)}
+                      onClick={() => setCurrentStep('reviewForm')}
+                      disabled={
+                        isValidating || 
+                        Object.keys(fieldErrors).length > 0 || 
+                        !validationStatus?.isValid ||
+                        !formData.firstName?.trim() ||
+                        !formData.lastName?.trim() ||
+                        !formData.language?.trim() ||
+                        !formData.email?.trim() ||
+                        !formData.address?.street?.trim() ||
+                        !formData.address?.city?.trim() ||
+                        !formData.address?.state?.trim() ||
+                        !formData.address?.country?.trim() ||
+                        !formData.address?.zipCode?.trim() ||
+                        !formData.phoneNumber?.trim()
+                      }
                     >
-                      Claim My Bonus Set
+                      Next Step
                     </Button>
 
                     <Button
@@ -1065,43 +1157,136 @@ export default function App() {
           </div>
         )}
 
-        {(currentStep === 'pdfThankYou' || currentStep === 'bonusThankYou') && (
+        {currentStep === 'pdfThankYou' && (
           <div className="flex flex-col lg:flex-row min-h-screen">
             <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center">
               <div className="max-w-xl mx-auto space-y-8 text-center">
                 <div className="mx-auto w-20 h-20 bg-[#ff5733] rounded-full flex items-center justify-center">
-                  {currentStep === 'pdfThankYou' ? (
-                    <Mail className="w-10 h-10 text-white" />
-                  ) : (
-                    <Package className="w-10 h-10 text-white" />
-                  )}
+                  <Mail className="w-10 h-10 text-white" />
                 </div>
 
                 <h2 className="text-2xl font-bold">
-                  {currentStep === 'pdfThankYou' ? 'Check Your Inbox!' : 'Your Gifts Are On The Way!'}
+                  Check Your Inbox!
                 </h2>
 
-                {currentStep === 'pdfThankYou' ? (
-                  <div className="space-y-4 text-gray-600">
-                    <p className="text-lg font-semibold">THANK YOU {formData.name || 'NAME'}, YOUR STUDY KEY PDF IS ON ITS WAY!</p>
-                    <p>CHECK YOUR INBOX FOR THE DOWNLOADABLE LINK - AND GET READY TO POWER UP YOUR LANGUAGE SKILLS.</p>
-                    <p className="font-semibold">DIDN'T RECEIVE IT?</p>
-                    <p>CHECK YOUR SPAM/JUNK FOLDER.</p>
-                    <p>WANT TO GO FURTHER? YOU CAN STILL REQUEST THE FULL BONUS SET BELOW!</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-600">Check your email for the PDF and expect your flashcard set soon!</p>
-                )}
+                <div className="space-y-4 text-gray-600">
+                  <p className="text-lg font-semibold">THANK YOU {formData.firstName || 'NAME'}, YOUR STUDY KEY PDF IS ON ITS WAY!</p>
+                  <p className="text-lg font-semibold">THANK YOU {formData.name || 'NAME'}, YOUR STUDY KEY PDF IS ON ITS WAY!</p>
+                  <p>CHECK YOUR INBOX FOR THE DOWNLOADABLE LINK - AND GET READY TO POWER UP YOUR LANGUAGE SKILLS.</p>
+                  <p className="font-semibold">DIDN'T RECEIVE IT?</p>
+                  <p>CHECK YOUR SPAM/JUNK FOLDER.</p>
+                  <p>WANT TO GO FURTHER? YOU CAN STILL REQUEST THE FULL BONUS SET BELOW!</p>
+                </div>
 
                 <div className="space-y-4">
-                  {currentStep === 'pdfThankYou' && (
-                    <Button
-                      className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                      onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
-                    >
-                      Get Bonus Flashcard Set
-                    </Button>
+                  <Button
+                    className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
+                    onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
+                  >
+                    Get Bonus Flashcard Set
+                  </Button>
+
+                  <Button
+                    className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
+                    onClick={() => setCurrentStep('intro')}
+                  >
+                    Back to Home
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
+          </div>
+        )}
+
+        {currentStep === 'reviewForm' && (
+          <div className="flex flex-col lg:flex-row min-h-screen">
+            <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
+              <div className="max-w-xl mx-auto space-y-8">
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-bold">Leave a Review</h2>
+                  <p className="text-gray-600">Help others discover our product by leaving a review on Amazon</p>
+                </div>
+
+                <form onSubmit={handleBonusSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    {/* Review Link - Keep this first */}
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h3 className="font-semibold mb-2">Review Link</h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Click the link below to leave your review on Amazon:
+                      </p>
+                      <a
+                        href={formData.reviewLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#ff5733] hover:underline"
+                      >
+                        {formData.reviewLink}
+                      </a>
+                    </div>
+
+                    {/* Review Screenshot Upload - Move this second */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Upload Your Review Screenshot
+                      </label>
+                      <p className="text-sm text-gray-500 mb-2">
+                        Please take a screenshot of your Amazon review and upload it here
+                      </p>
+                      <ReviewScreenshotUpload />
+                    </div>
+                  </div>
+
+                  {errorMessage && (
+                    <p className="text-red-500 text-sm text-center mt-4">{errorMessage}</p>
                   )}
+
+                  <div className="space-y-4">
+                    <Button
+                      type="submit"
+                      className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
+                      disabled={uploadProgress.isUploading || (!reviewScreenshotFile && !reviewScreenshotUrl)}
+                    >
+                      Claim My Bonus Set
+                    </Button>
+
+                    <Button
+                      type="button"
+                      className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
+                      onClick={() => setCurrentStep('bonusForm')}
+                    >
+                      Go Back
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
+          </div>
+        )}
+
+        {currentStep === 'bonusThankYou' && (
+          <div className="flex flex-col lg:flex-row min-h-screen">
+            <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center">
+              <div className="max-w-xl mx-auto space-y-8 text-center">
+                <div className="mx-auto w-20 h-20 bg-[#ff5733] rounded-full flex items-center justify-center">
+                  <Package className="w-10 h-10 text-white" />
+                </div>
+
+                <h2 className="text-2xl font-bold">
+                  Your Gifts Are On The Way!
+                </h2>
+
+                <p className="text-gray-600">Check your email for the PDF and expect your flashcard set soon!</p>
+
+                <div className="space-y-4">
+                  <Button
+                    className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
+                    onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
+                  >
+                    Get Bonus Flashcard Set
+                  </Button>
 
                   <Button
                     className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
