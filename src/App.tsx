@@ -105,7 +105,7 @@ export default function App() {
     }
   }, [currentStep, setScreenshotFile, setScreenshotUrl, setUploadProgress]); // Add dependencies
 
-  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app/';
+  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app';
 
   const validateOrderId = async (orderId: string) => {
     if (!orderId) {
