@@ -899,19 +899,13 @@ export default function App() {
                 <form onSubmit={handlePdfSubmit} className="space-y-6">
                   <div className="space-y-2">
                     {renderFormInput("First Name", "firstName", <User size={20} />)}
-                    {fieldErrors.firstName && (
-                      <p className="text-red-500 text-sm mt-1">{fieldErrors.firstName}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     {renderFormInput("Last Name", "lastName", <User size={20} />)}
-                    {fieldErrors.lastName && (
-                      <p className="text-red-500 text-sm mt-1">{fieldErrors.lastName}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     {renderSelectInput(
-                      "Select PDF Language",
+                      "Select Language",
                       "language",
                       <Globe size={20} />,
                       languageOptions,
@@ -920,15 +914,9 @@ export default function App() {
                     <p className="text-sm text-gray-500 mt-1">
                       Please select which PDF version you would like to receive - English or Spanish
                     </p>
-                    {fieldErrors.language && (
-                      <p className="text-red-500 text-sm mt-1">{fieldErrors.language}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     {renderFormInput("Email Address", "email", <Mail size={20} />, "email")}
-                    {fieldErrors.email && (
-                      <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
-                    )}
                   </div>
 
                   {errorMessage && (
@@ -939,7 +927,13 @@ export default function App() {
                     <Button
                       type="submit"
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                      disabled={Object.keys(fieldErrors).length > 0}
+                      disabled={
+                        Object.keys(fieldErrors).length > 0 ||
+                        !formData.firstName?.trim() ||
+                        !formData.lastName?.trim() ||
+                        !formData.language ||
+                        !formData.email?.trim()
+                      }
                     >
                       Send Me the PDF
                     </Button>
@@ -999,7 +993,7 @@ export default function App() {
                       {renderFormInput("Last Name", "lastName", <User size={20} />)}
                     </div>
 
-                    {/* Language Dropdown and Email in the same row */}
+                    {/* Language Dropdown */}
                     <div className="space-y-2">
                       {renderSelectInput(
                         "Select Language",
@@ -1009,14 +1003,11 @@ export default function App() {
                         () => validateField('language', formData.language, z.string().min(1, "Please select a language"))
                       )}
                       <p className="text-sm text-gray-500 mt-1">
-                        Please select your preferred language for the bonus set
+                        Please select which PDF version you would like to receive - English or Spanish
                       </p>
-                      {fieldErrors.language && (
-                        <p className="text-red-500 text-sm mt-1">{fieldErrors.language}</p>
-                      )}
                     </div>
 
-                    {/* Email field beside language dropdown */}
+                    {/* Email field */}
                     <div className="space-y-2">
                       {renderFormInput(
                         "Email Address",
@@ -1025,10 +1016,8 @@ export default function App() {
                         "email",
                         () => validateField('email', formData.email, z.string().email("Please enter a valid email address"))
                       )}
-                      {fieldErrors.email && (
-                        <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
-                      )}
                     </div>
+
 
                     {/* Street Address */}
                     <div className="space-y-2 md:col-span-2">
@@ -1124,8 +1113,8 @@ export default function App() {
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
                       onClick={() => setCurrentStep('reviewForm')}
                       disabled={
-                        isValidating || 
-                        Object.keys(fieldErrors).length > 0 || 
+                        isValidating ||
+                        Object.keys(fieldErrors).length > 0 ||
                         !validationStatus?.isValid ||
                         !formData.firstName?.trim() ||
                         !formData.lastName?.trim() ||
