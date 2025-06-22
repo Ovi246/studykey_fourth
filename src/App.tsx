@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { create } from 'zustand';
 import * as z from 'zod';
 import { Button } from "./components/ui/button";
-import { Mail, User, Globe, Package, MapPin, ShoppingBag, Book, Upload, Loader2 } from 'lucide-react';
+import { Mail, User, Globe, Package, MapPin, ShoppingBag, Upload, Loader2 } from 'lucide-react';
 import { ImageSection } from './components/ImageSection';
 import Booklet from "./assets/booklet.png"
 import Intro from "./assets/studykey_box.png"
@@ -15,14 +15,6 @@ import Image3 from "./assets/intro_3.jpeg"
 
 // Add this near the top of the file, after the imports
 const phoneRegexFormatted = /^\(\d{3}\) \d{3}-\d{4}$/;
-
-function debounce<T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay);
-  };
-}
 
 interface AppStore {
   selectedOption: 'pdf' | 'bonus' | null;
@@ -87,7 +79,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'reviewForm' | 'bonusThankYou'>('intro');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean; asin?: string } | null>(null);
-  const { selectedOption, setSelectedOption, formData, setFormData, setAddressFormData, screenshotUrl, setScreenshotUrl, uploadProgress, screenshotFile, setScreenshotFile, setUploadProgress, reviewScreenshotUrl, setReviewScreenshotUrl, reviewScreenshotFile, setReviewScreenshotFile } = useAppStore();
+  const { setSelectedOption, formData, setFormData, setAddressFormData, setScreenshotUrl, uploadProgress, setScreenshotFile, setUploadProgress, reviewScreenshotUrl, setReviewScreenshotUrl, reviewScreenshotFile } = useAppStore();
   const [isValidating, setIsValidating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -215,10 +207,10 @@ export default function App() {
   };
 
    // Individual field validation function (generic helper)
-  const validateField = <T extends keyof AppStore['formData'] | `address.${keyof AppStore['formData']['address']}`>(
+  const validateField = <T extends keyof AppStore['formData'] | `address.${keyof NonNullable<AppStore['formData']['address']>}`>(
       name: T,
-      value: any,
-      schema: z.ZodSchema<any>
+      value: unknown,
+      schema: z.ZodSchema<unknown>
   ) => {
       try {
           // Validate using the provided Zod schema
@@ -332,7 +324,7 @@ export default function App() {
         address: formData.address,
         productSet: formData.set,
         phoneNumber: formData.phoneNumber,
-        reviewScreenshotUrl: finalReviewScreenshotUrl,
+        screenshotUrl: finalReviewScreenshotUrl,
       };
 
       // Submit the form
@@ -369,26 +361,26 @@ export default function App() {
   // Adjusted renderFormInput to improve error message styling and add input type
   const renderFormInput = (
     placeholder: string,
-    name: keyof AppStore['formData'] | `address.${keyof AppStore['formData']['address']}`,
+    name: keyof AppStore['formData'] | `address.${keyof NonNullable<AppStore['formData']['address']>}`,
     icon: React.ReactNode,
     type: string = 'text',
     onBlur?: () => void,
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   ) => {
-    const getValue = (path: string) => {
+    const getValue = (path: string): string => {
       const keys = path.split('.');
-      let value: any = formData;
+      let value: unknown = formData;
       for (const key of keys) {
         if (value && typeof value === 'object' && key in value) {
-          value = value[key];
+          value = (value as Record<string, unknown>)[key];
         } else {
           return '';
         }
       }
-      return value;
+      return String(value || '');
     };
 
-    const setValue = (path: string, value: any) => {
+    const setValue = (path: string, value: string) => {
       const keys = path.split('.');
       if (keys[0] === 'address') {
         setAddressFormData({ [keys[1]]: value });
@@ -464,25 +456,25 @@ export default function App() {
 
    const renderSelectInput = (
        placeholder: string,
-       name: keyof AppStore['formData'] | `address.${keyof AppStore['formData']['address']}`,
+       name: keyof AppStore['formData'] | `address.${keyof NonNullable<AppStore['formData']['address']>}`,
        icon: React.ReactNode,
        options: SelectOption[],
        onBlur?: () => void
    ) => {
-       const getValue = (path: string) => {
+       const getValue = (path: string): string => {
            const keys = path.split('.');
-           let value: any = formData;
+           let value: unknown = formData;
            for (const key of keys) {
                if (value && typeof value === 'object' && key in value) {
-                   value = value[key];
+                   value = (value as Record<string, unknown>)[key];
                } else {
                    return '';
                }
            }
-           return value;
+           return String(value || '');
        };
 
-       const setValue = (path: string, value: any) => {
+       const setValue = (path: string, value: string) => {
            const keys = path.split('.');
            if (keys[0] === 'address') {
                setAddressFormData({ [keys[1]]: value });
@@ -538,7 +530,7 @@ export default function App() {
    };
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
     let formattedValue = '';
 
     // Apply formatting (###) ###-####
@@ -583,125 +575,6 @@ export default function App() {
     { value: 'English', label: 'English' },
     { value: 'Spanish', label: 'Spanish' },
   ];
-
-  const FileUploadWithProgress = () => {
-    const {
-      uploadProgress, // Need uploadProgress here to show the progress bar
-      screenshotFile, // Still need screenshotFile to hold the selected file temporarily
-      setScreenshotFile,
-      screenshotUrl, // Need screenshotUrl here to show success/uploaded state
-    } = useAppStore();
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      // Clear previous upload status/errors when selecting a new file
-      setUploadProgress({ isUploading: false, progress: 0 });
-      setScreenshotUrl(null); // Clear previously uploaded URL
-       setFieldErrors(prev => { // Clear screenshot error
-            const newState = { ...prev };
-            delete newState.screenshot;
-            return newState;
-        });
-
-      if (file) {
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          alert('Please upload an image file');
-          setScreenshotFile(null); // Clear the selected file state
-          if (fileInputRef.current) { fileInputRef.current.value = ''; } // Reset input
-          return;
-        }
-        // Validate file size (e.g., 5MB limit)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('File size should be less than 5MB');
-           setScreenshotFile(null); // Clear the selected file state
-           if (fileInputRef.current) { fileInputRef.current.value = ''; } // Reset input
-          return;
-        }
-        // If validation passes, set the file in state - DO NOT start upload here
-        setScreenshotFile(file);
-      } else {
-          // If file selection is cancelled, clear the state
-          setScreenshotFile(null);
-      }
-    };
-
-    return (
-      <div className="space-y-4 py-2">
-        <div className="  ">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-            id="screenshot-upload"
-          />
-          <label
-            htmlFor="screenshot-upload"
-            className={`flex items-center space-x-2 px-4 py-2 border rounded-lg cursor-pointer ${
-               uploadProgress.isUploading ? 'bg-gray-100 text-gray-500 cursor-not-allowed' // Dim and disable while uploading (though button handles primary disable)
-               : fieldErrors.screenshot ? 'border-red-500 text-red-500' // Style error state
-               : screenshotUrl ? 'border-green-500 text-green-700' // Style success state
-               : 'border-gray-300 hover:bg-gray-50 text-gray-700' // Default state
-             }`}
-             // Label is not truly disabled, but cursor indicates state
-          >
-            {uploadProgress.isUploading ? (
-                 <Loader2 className="w-5 h-5 animate-spin" />
-             ) : screenshotUrl ? (
-                 // Optionally show a success icon if URL exists
-                 <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-             ) : (
-                <Upload className="w-5 h-5" />
-             )}
-            <span>
-                {uploadProgress.isUploading ? 'Uploading...'
-                 : screenshotUrl ? 'Screenshot Uploaded' // Text after successful upload
-                 : screenshotFile ? 'File Selected (Ready to Upload)' // Text after selecting but before uploading
-                 : 'Choose Screenshot' // Initial text
-                }
-            </span>
-          </label>
-          {/* Removed the explicit Upload Button */}
-        </div>
-
-        {/* Show selected file name if a file is chosen but not yet uploaded */}
-        {screenshotFile && !uploadProgress.isUploading && !screenshotUrl && (
-           <div className="text-sm text-gray-600">
-            Selected file: {screenshotFile.name}
-          </div>
-        )}
-
-         {/* Show selected file name after upload success */}
-         {screenshotFile && !uploadProgress.isUploading && screenshotUrl && (
-             <div className="text-sm text-gray-600">
-               File: {screenshotFile.name}
-             </div>
-         )}
-
-
-        {/* Progress bar */}
-        {uploadProgress.isUploading && uploadProgress.progress > 0 && ( // Only show if uploading and progress has started
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2"> {/* Added margin-top for spacing */}
-            <div
-              className="bg-[#ff5733] h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress.progress}%` }}
-            />
-          </div>
-        )}
-
-        {/* Success message - Now the label text also indicates success */}
-        {/* Removed explicit success message div as label text now covers it */}
-
-         {/* Field error for screenshot */}
-         {fieldErrors.screenshot && (
-           <p className="text-red-500 text-sm mt-1">{fieldErrors.screenshot}</p>
-        )}
-      </div>
-    );
-  };
 
   // Add new component for review screenshot upload
   const ReviewScreenshotUpload = () => {
