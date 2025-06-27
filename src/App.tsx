@@ -617,12 +617,12 @@ export default function App() {
 
                   <div className="text-center">
             
-                    <Button
+                    <a
                       className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
-                      
+                      href="https://www.amazon.com/gp/sign-in.html"
                     >
-                      Contact Us on Amazon
-                    </Button>
+                      Continue To Amazon Now
+                    </a>
                   </div>
                 </div>
               </div>
