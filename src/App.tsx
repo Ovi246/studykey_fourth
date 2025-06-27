@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { create } from 'zustand';
 import * as z from 'zod';
 import { Button } from "./components/ui/button";
-import { Mail, User, Globe, Package, MapPin, ShoppingBag, Upload, Loader2 } from 'lucide-react';
+import { Mail, User, Globe, Package, MapPin, ShoppingBag } from 'lucide-react';
 import { ImageSection } from './components/ImageSection';
 import Booklet from "./assets/booklet.png"
 import Intro from "./assets/studykey_box.png"
@@ -79,7 +79,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'reviewForm' | 'bonusThankYou'>('intro');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean; asin?: string } | null>(null);
-  const { setSelectedOption, formData, setFormData, setAddressFormData, setScreenshotUrl, uploadProgress, setScreenshotFile, setUploadProgress, reviewScreenshotUrl, setReviewScreenshotUrl, reviewScreenshotFile } = useAppStore();
+  const { setSelectedOption, formData, setFormData, setAddressFormData, setScreenshotUrl, setScreenshotFile, setUploadProgress } = useAppStore();
   const [isValidating, setIsValidating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -237,6 +237,7 @@ export default function App() {
   };
 
   // Moved the core upload logic into a separate function
+  /*
   const uploadScreenshot = async (file: File): Promise<string> => {
        const formData = new FormData();
        formData.append('screenshot', file);
@@ -279,6 +280,7 @@ export default function App() {
            xhr.send(formData);
        });
   };
+  */
 
 
   const handleBonusSubmit = async (e: React.FormEvent) => {
@@ -292,29 +294,7 @@ export default function App() {
         return;
       }
 
-      let finalReviewScreenshotUrl = reviewScreenshotUrl;
-
-      // Upload review screenshot if needed
-      if (reviewScreenshotFile && !reviewScreenshotUrl) {
-        try {
-          finalReviewScreenshotUrl = await uploadScreenshot(reviewScreenshotFile);
-          setReviewScreenshotUrl(finalReviewScreenshotUrl);
-        } catch (uploadError) {
-          console.error("Review screenshot upload error:", uploadError);
-          const errorMsg = uploadError instanceof Error ? uploadError.message : 'Failed to upload review screenshot.';
-          setFieldErrors(prev => ({ ...prev, reviewScreenshot: errorMsg }));
-          setErrorMessage('Review screenshot upload failed. Please try again.');
-          return;
-        }
-      }
-
-      // Check if review screenshot is available
-      if (!finalReviewScreenshotUrl) {
-        setErrorMessage('Please upload your review screenshot.');
-        return;
-      }
-
-      // Construct the final payload
+      // Construct the final payload (no screenshotUrl)
       const bonusPayload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -324,7 +304,6 @@ export default function App() {
         address: formData.address,
         productSet: formData.set,
         phoneNumber: formData.phoneNumber,
-        screenshotUrl: finalReviewScreenshotUrl,
       };
 
       // Submit the form
@@ -575,115 +554,6 @@ export default function App() {
     { value: 'English', label: 'English' },
     { value: 'Spanish', label: 'Spanish' },
   ];
-
-  // Add new component for review screenshot upload
-  const ReviewScreenshotUpload = () => {
-    const {
-      uploadProgress,
-      reviewScreenshotFile,
-      setReviewScreenshotFile,
-      reviewScreenshotUrl,
-      setReviewScreenshotUrl,
-      setUploadProgress,
-    } = useAppStore();
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      setUploadProgress({ isUploading: false, progress: 0 });
-      setReviewScreenshotUrl(null);
-      setFieldErrors(prev => {
-        const newState = { ...prev };
-        delete newState.reviewScreenshot;
-        return newState;
-      });
-
-      if (file) {
-        if (!file.type.startsWith('image/')) {
-          alert('Please upload an image file');
-          setReviewScreenshotFile(null);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-          alert('File size should be less than 5MB');
-          setReviewScreenshotFile(null);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-        setReviewScreenshotFile(file);
-      } else {
-        setReviewScreenshotFile(null);
-      }
-    };
-
-    return (
-      <div className="space-y-4 py-2">
-        <div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-            id="review-screenshot-upload"
-          />
-          <label
-            htmlFor="review-screenshot-upload"
-            className={`flex items-center space-x-2 px-4 py-2 border rounded-lg cursor-pointer ${
-              uploadProgress.isUploading ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-              : fieldErrors.reviewScreenshot ? 'border-red-500 text-red-500'
-              : reviewScreenshotUrl ? 'border-green-500 text-green-700'
-              : 'border-gray-300 hover:bg-gray-50 text-gray-700'
-            }`}
-          >
-            {uploadProgress.isUploading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : reviewScreenshotUrl ? (
-              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <Upload className="w-5 h-5" />
-            )}
-            <span>
-              {uploadProgress.isUploading ? 'Uploading...'
-               : reviewScreenshotUrl ? 'Review Screenshot Uploaded'
-               : reviewScreenshotFile ? 'File Selected (Ready to Upload)'
-               : 'Upload Review Screenshot'
-              }
-            </span>
-          </label>
-        </div>
-
-        {reviewScreenshotFile && !uploadProgress.isUploading && !reviewScreenshotUrl && (
-          <div className="text-sm text-gray-600">
-            Selected file: {reviewScreenshotFile.name}
-          </div>
-        )}
-
-        {reviewScreenshotFile && !uploadProgress.isUploading && reviewScreenshotUrl && (
-          <div className="text-sm text-gray-600">
-            File: {reviewScreenshotFile.name}
-          </div>
-        )}
-
-        {uploadProgress.isUploading && uploadProgress.progress > 0 && (
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-            <div
-              className="bg-[#ff5733] h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress.progress}%` }}
-            />
-          </div>
-        )}
-
-        {fieldErrors.reviewScreenshot && (
-          <p className="text-red-500 text-sm mt-1">{fieldErrors.reviewScreenshot}</p>
-        )}
-      </div>
-    );
-  };
-
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -982,32 +852,16 @@ export default function App() {
 
                   <div className="space-y-4">
                     <Button
-                      type="button"
+                      type="submit"
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                      onClick={() => setCurrentStep('reviewForm')}
-                      disabled={
-                        isValidating ||
-                        Object.keys(fieldErrors).length > 0 ||
-                        !validationStatus?.isValid ||
-                        !formData.firstName?.trim() ||
-                        !formData.lastName?.trim() ||
-                        !formData.language?.trim() ||
-                        !formData.email?.trim() ||
-                        !formData.address?.street?.trim() ||
-                        !formData.address?.city?.trim() ||
-                        !formData.address?.state?.trim() ||
-                        !formData.address?.country?.trim() ||
-                        !formData.address?.zipCode?.trim() ||
-                        !formData.phoneNumber?.trim()
-                      }
                     >
-                      Next Step
+                      Claim My Bonus Set
                     </Button>
 
                     <Button
                       type="button"
                       className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
-                      onClick={() => setCurrentStep('intro')}
+                      onClick={() => setCurrentStep('bonusForm')}
                     >
                       Go Back
                     </Button>
@@ -1075,27 +929,16 @@ export default function App() {
                     <div className="p-4 bg-gray-50 rounded-lg">
                       <h3 className="font-semibold mb-2">Review Link</h3>
                       <p className="text-sm text-gray-600 mb-4">
-                        Click the link below to leave your review on Amazon:
+                        Give us honest feedback on Amazon - we would love to get your honest feedback, you will be helping us improve our product for toddlers like yours!
                       </p>
                       <a
                         href={formData.reviewLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#ff5733] hover:underline"
+                        className="inline-block bg-[#ff5733] hover:bg-[#e64a2e] text-white px-6 py-2 rounded-full font-medium"
                       >
-                        {formData.reviewLink}
+                        Leave Amazon Review
                       </a>
-                    </div>
-
-                    {/* Review Screenshot Upload - Move this second */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Upload Your Review Screenshot
-                      </label>
-                      <p className="text-sm text-gray-500 mb-2">
-                        Please take a screenshot of your Amazon review and upload it here
-                      </p>
-                      <ReviewScreenshotUpload />
                     </div>
                   </div>
 
@@ -1107,7 +950,6 @@ export default function App() {
                     <Button
                       type="submit"
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                      disabled={uploadProgress.isUploading || (!reviewScreenshotFile && !reviewScreenshotUrl)}
                     >
                       Claim My Bonus Set
                     </Button>
