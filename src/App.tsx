@@ -616,9 +616,7 @@ export default function App() {
                   </div>
 
                   <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-4">
-                     To be part of our tester group!
-                    </p>
+            
                     <Button
                       className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
                       
