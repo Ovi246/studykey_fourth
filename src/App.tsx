@@ -568,11 +568,11 @@ export default function App() {
                   just for you!
                 </h1>
 
-                {/* Option 1 */}
+                {/* PDF Download Option */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold text-center">Option 1: I want the FREE E-BOOK only</h2>
-                    <p className="text-gray-700 text-center">A fast boost for your Spanish practice</p>
+                    <h2 className="text-lg font-semibold text-center">Download Your FREE E-BOOK</h2>
+                    <p className="text-gray-700 text-center">Choose your preferred language and get instant access</p>
                   </div>
 
                   <div className="h-full w-96 mx-auto">
@@ -583,29 +583,31 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="flex justify-center">
-                    <Button
-                      className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
-                      onClick={() => { setSelectedOption('pdf'); setCurrentStep('pdfForm'); }}
+                  <div className="space-y-4">
+                    <select 
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ff5733] focus:border-transparent"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          window.open(e.target.value, '_blank');
+                        }
+                      }}
                     >
-                      Get My PDF Now
-                    </Button>
+                      <option value="">Select your PDF language</option>
+                      <option value="https://firebasestorage.googleapis.com/v0/b/studykey-b1dc7.appspot.com/o/reward_english.pdf?alt=media&token=b81ce30b-af3f-438b-83f7-5665abe308b2">English PDF</option>
+                      <option value="https://firebasestorage.googleapis.com/v0/b/studykey-b1dc7.appspot.com/o/reward_spanish.pdf?alt=media&token=83156c62-04da-4c6f-bdb9-b215b5ec2d07">Spanish PDF</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Option 2 */}
+                {/* Bonus Option - Contact via Amazon */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold text-center">Option 2: I want the PDF + FREE Flashcard Set!</h2>
-                    <p className="text-gray-700 text-center">A great mixture of fun and learning</p>
+                    <h2 className="text-lg font-semibold text-center">Want the FREE Flashcard Set?</h2>
+                    <p className="text-gray-700 text-center">Contact us via Amazon Customer Messaging to claim your bonus!</p>
                   </div>
 
                   <div className="h-32 w-96 flex mx-auto">
-                  <img
-                      src={Booklet}
-                      alt="Spanish Flashcard Set"
-                      className="w-full h-full object-contain bg-transparent"
-                    />
+                  
                     <img
                       src={Intro}
                       alt="Spanish Flashcard Set"
@@ -613,12 +615,15 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="flex justify-center">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-4">
+                     To be part of our tester group!
+                    </p>
                     <Button
                       className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
-                      onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
+                      
                     >
-                      Continue to Bonus
+                      Contact Us on Amazon
                     </Button>
                   </div>
                 </div>
