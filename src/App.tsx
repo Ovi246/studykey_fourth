@@ -602,8 +602,8 @@ export default function App() {
                 {/* Bonus Option - Contact via Amazon */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold text-center">Want the FREE Flashcard Set?</h2>
-                    <p className="text-gray-700 text-center">Contact us via Amazon Customer Messaging to claim your bonus!</p>
+                    <p className="font-semibold text-center">as a thank you for your learning dedication we are offering our soul delight set, your interest...</p>
+                    <p className="text-gray-700 text-center">Contact us via Amazon Customer Messaging!</p>
                   </div>
 
                   <div className="h-32 w-96 flex mx-auto">
