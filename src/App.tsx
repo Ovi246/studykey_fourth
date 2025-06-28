@@ -602,7 +602,7 @@ export default function App() {
                 {/* Bonus Option - Contact via Amazon */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p className="font-semibold text-center">as a thank you for your learning dedication we are offering our soul delight set, your interest...</p>
+                    <p className="font-semibold text-center">as a thank you for your learning dedication we are offering our soul delight set, If you are interested...</p>
                     <p className="text-gray-700 text-center">Contact us via Amazon Customer Messaging!</p>
                   </div>
 
