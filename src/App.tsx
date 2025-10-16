@@ -22,14 +22,10 @@ interface AppStore {
   formData: {
     email?: string;
     amazonOrder?: string;
-    reviewLink?: string;
-    shippingName?: string;
-    mailingAddress?: string;
+    asin?: string;
     firstName?: string;
     lastName?: string;
     language?: string;
-    set?: string;
-    asin?: string;
     address?: {
       street?: string;
       city?: string;
@@ -41,16 +37,6 @@ interface AppStore {
   };
   setFormData: (data: Partial<AppStore['formData']>) => void;
   setAddressFormData: (data: Partial<AppStore['formData']['address']>) => void;
-  screenshotUrl: string | null;
-  setScreenshotUrl: (url: string | null) => void;
-  uploadProgress: { isUploading: boolean; progress: number };
-  setUploadProgress: (progress: Partial<AppStore['uploadProgress']>) => void;
-  screenshotFile: File | null;
-  setScreenshotFile: (file: File | null) => void;
-  reviewScreenshotUrl: string | null;
-  setReviewScreenshotUrl: (url: string | null) => void;
-  reviewScreenshotFile: File | null;
-  setReviewScreenshotFile: (file: File | null) => void;
 }
 
 const useAppStore = create<AppStore>((set) => ({
@@ -61,25 +47,15 @@ const useAppStore = create<AppStore>((set) => ({
   },
   setFormData: (data: Partial<AppStore['formData']>) => set((state) => ({ formData: { ...state.formData, ...data } })),
   setAddressFormData: (data: Partial<AppStore['formData']['address']>) => set((state) => ({ formData: { ...state.formData, address: { ...state.formData.address, ...data } } })),
-  screenshotUrl: null,
-  setScreenshotUrl: (url) => set({ screenshotUrl: url }),
-  uploadProgress: { isUploading: false, progress: 0 },
-  setUploadProgress: (progress: Partial<AppStore['uploadProgress']>) => set((state) => ({ uploadProgress: { ...state.uploadProgress, ...progress } })),
-  screenshotFile: null,
-  setScreenshotFile: (file: File | null) => set({ screenshotFile: file }),
-  reviewScreenshotUrl: null,
-  setReviewScreenshotUrl: (url) => set({ reviewScreenshotUrl: url }),
-  reviewScreenshotFile: null,
-  setReviewScreenshotFile: (file: File | null) => set({ reviewScreenshotFile: file }),
 }));
 
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'reviewForm' | 'bonusThankYou'>('intro');
+  const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('intro');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [validationStatus, setValidationStatus] = useState<{ isValid: boolean; asin?: string } | null>(null);
-  const { setSelectedOption, formData, setFormData, setAddressFormData, setScreenshotUrl, setScreenshotFile, setUploadProgress } = useAppStore();
+  const [validationStatus, setValidationStatus] = useState<{ isValid: boolean } | null>(null);
+  const { setSelectedOption, formData, setFormData, setAddressFormData } = useAppStore();
   const [isValidating, setIsValidating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -89,15 +65,9 @@ export default function App() {
     setFieldErrors({});
     // Decide if you want to reset order ID validation status on step change
     // setValidationStatus(null);
-    // Reset screenshot state when leaving bonus form
-    if (currentStep !== 'bonusForm') {
-       setScreenshotFile(null);
-       setScreenshotUrl(null);
-       setUploadProgress({ isUploading: false, progress: 0 });
-    }
-  }, [currentStep, setScreenshotFile, setScreenshotUrl, setUploadProgress]); // Add dependencies
+  }, [currentStep]); // Add dependencies
 
-  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app';
+  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app/';
 
   const validateOrderId = async (orderId: string) => {
     if (!orderId) {
@@ -126,10 +96,9 @@ export default function App() {
       });
       const data = await response.json();
       if (data.valid) {
-        setValidationStatus({ isValid: true, asin: data.asin || '' });
+        setValidationStatus({ isValid: true });
         if (data.asin) {
-          const reviewLink = `https://www.amazon.com/review/create-review?asin=${data.asin}`;
-          setFormData({ reviewLink, asin: data.asin });
+          setFormData({ asin: data.asin });
         }
          // Clear amazonOrder field error if validation succeeds
          setFieldErrors(prev => {
@@ -236,51 +205,7 @@ export default function App() {
       }
   };
 
-  // Moved the core upload logic into a separate function
-  /*
-  const uploadScreenshot = async (file: File): Promise<string> => {
-       const formData = new FormData();
-       formData.append('screenshot', file);
-
-       return new Promise((resolve, reject) => {
-           const xhr = new XMLHttpRequest();
-           xhr.open('POST', `${API_BASE_URL}/upload-screenshot`, true);
-
-           xhr.upload.onprogress = (event) => {
-             if (event.lengthComputable) {
-               const progress = Math.round((event.loaded * 100) / event.total);
-               setUploadProgress({ isUploading: true, progress });
-             }
-           };
-
-           xhr.onload = () => {
-             if (xhr.status === 200) {
-               const response = JSON.parse(xhr.responseText);
-               if (response.success && response.url) {
-                 setUploadProgress({ isUploading: false, progress: 100 });
-                 resolve(response.url); // Resolve the promise with the URL
-               } else {
-                 setUploadProgress({ isUploading: false, progress: 0 });
-                 const errorMessage = response.message || 'Upload failed';
-                 reject(new Error(errorMessage)); // Reject on backend failure
-               }
-             } else {
-                setUploadProgress({ isUploading: false, progress: 0 });
-                const errorResponse = JSON.parse(xhr.responseText || '{}');
-                const errorMessage = errorResponse.message || 'Upload failed';
-                reject(new Error(errorMessage)); // Reject on non-200 status
-             }
-           };
-
-           xhr.onerror = () => {
-             setUploadProgress({ isUploading: false, progress: 0 });
-             reject(new Error('Upload failed. Network error.')); // Reject on network error
-           };
-
-           xhr.send(formData);
-       });
-  };
-  */
+  // Media upload logic removed as it's no longer needed
 
 
   const handleBonusSubmit = async (e: React.FormEvent) => {
@@ -288,11 +213,25 @@ export default function App() {
     setErrorMessage(null);
 
     try {
-      // Check if we have a valid review link
-      if (!formData.reviewLink || !formData.asin) {
-        setErrorMessage('Please validate your order ID to get the review link.');
-        return;
-      }
+      // Submit-time validation schema for bonus form
+      const bonusSchema = z.object({
+        amazonOrder: z.string().min(1, 'Amazon order number is required'),
+        firstName: z.string().min(1, 'First name is required'),
+        lastName: z.string().min(1, 'Last name is required'),
+        language: z.string().min(1, 'Language is required'),
+        email: z.string().email('Please enter a valid email address'),
+       
+        address: z.object({
+          street: z.string().min(1, 'Street address is required'),
+          city: z.string().min(1, 'City is required'),
+          state: z.string().min(1, 'State/Province is required'),
+          zipCode: z.string().min(1, 'Zip/Postal Code is required'),
+          country: z.string().min(1, 'Country is required')
+        }),
+        phoneNumber: z.string().regex(phoneRegexFormatted, 'Please enter a valid phone number (e.g., (123) 456-7890)')
+      });
+
+      bonusSchema.parse(formData);
 
       // Construct the final payload (no screenshotUrl)
       const bonusPayload = {
@@ -302,7 +241,6 @@ export default function App() {
         email: formData.email,
         orderId: formData.amazonOrder,
         address: formData.address,
-        productSet: formData.set,
         phoneNumber: formData.phoneNumber,
       };
 
@@ -854,14 +792,20 @@ export default function App() {
                     <Button
                       type="submit"
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
+                      onClick={() => {
+                        if (formData.asin) {
+                          const url = `https://www.amazon.com/review/create-review?asin=${formData.asin}`;
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
                     >
-                      Claim My Bonus Set
+                      Share My Feedback & Claim Bonus Set
                     </Button>
 
                     <Button
                       type="button"
                       className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
-                      onClick={() => setCurrentStep('bonusForm')}
+                      onClick={() => setCurrentStep('intro')}
                     >
                       Go Back
                     </Button>
@@ -914,60 +858,7 @@ export default function App() {
           </div>
         )}
 
-        {currentStep === 'reviewForm' && (
-          <div className="flex flex-col lg:flex-row min-h-screen">
-            <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
-              <div className="max-w-xl mx-auto space-y-8">
-                <div className="text-center space-y-2">
-                  <h2 className="text-2xl font-bold">Leave a Review</h2>
-                  <p className="text-gray-600">Help others discover our product by leaving a review on Amazon</p>
-                </div>
-
-                <form onSubmit={handleBonusSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    {/* Review Link - Keep this first */}
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-semibold mb-2">Review Link</h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Give us honest feedback on Amazon - we would love to get your honest feedback, you will be helping us improve our product for toddlers like yours!
-                      </p>
-                      <a
-                        href={formData.reviewLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block bg-[#ff5733] hover:bg-[#e64a2e] text-white px-6 py-2 rounded-full font-medium"
-                      >
-                        Leave Amazon Review
-                      </a>
-                    </div>
-                  </div>
-
-                  {errorMessage && (
-                    <p className="text-red-500 text-sm text-center mt-4">{errorMessage}</p>
-                  )}
-
-                  <div className="space-y-4">
-                    <Button
-                      type="submit"
-                      className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                    >
-                      Claim My Bonus Set
-                    </Button>
-
-                    <Button
-                      type="button"
-                      className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
-                      onClick={() => setCurrentStep('bonusForm')}
-                    >
-                      Go Back
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </div>
-            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
-          </div>
-        )}
+        {/* reviewForm step removed */}
 
         {currentStep === 'bonusThankYou' && (
           <div className="flex flex-col lg:flex-row min-h-screen">
