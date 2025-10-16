@@ -67,7 +67,7 @@ export default function App() {
     // setValidationStatus(null);
   }, [currentStep]); // Add dependencies
 
-  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app/';
+  const API_BASE_URL = 'https://studykey-riddles-server.vercel.app';
 
   const validateOrderId = async (orderId: string) => {
     if (!orderId) {
