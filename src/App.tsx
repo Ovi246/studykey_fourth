@@ -489,8 +489,8 @@ export default function App() {
   // Update the language options to use lowercase values
   const languageOptions = [
     { value: "", label: "Select Language" },
-    { value: "English", label: "English to Spanish" },
-    { value: "Spanish", label: "Spanish to English" },
+    { value: "English", label: "I am learning English" },
+    { value: "Spanish", label: "I am learning Spanish" },
   ];
 
   return (
