@@ -52,7 +52,8 @@ const useAppStore = create<AppStore>((set) => ({
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('intro');
+  const [currentStep, setCurrentStep] = useState<'countrySelect' | 'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('countrySelect');
+  const [userCountry, setUserCountry] = useState<'US' | 'CA' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean } | null>(null);
   const { setSelectedOption, formData, setFormData, setAddressFormData } = useAppStore();
@@ -66,6 +67,18 @@ export default function App() {
     // Decide if you want to reset order ID validation status on step change
     // setValidationStatus(null);
   }, [currentStep]); // Add dependencies
+
+  // Lock address.country to US when entering the bonus form (US-only shipping).
+  // Defensive guard: bounce non-US users back to intro if they somehow land here.
+  useEffect(() => {
+    if (currentStep === 'bonusForm') {
+      if (userCountry !== 'US') {
+        setCurrentStep('intro');
+        return;
+      }
+      setAddressFormData({ country: 'US' });
+    }
+  }, [currentStep, userCountry, setAddressFormData]);
 
   const API_BASE_URL = 'https://studykey-riddles-server.vercel.app';
 
@@ -478,14 +491,6 @@ export default function App() {
      }
   };
 
-  // Define country options for the dropdown
-  const countryOptions = [
-      { value: '', label: 'Select Country' }, // Added empty option as placeholder
-      { value: 'US', label: 'USA 🇺🇸' },
-      { value: 'CA', label: 'Canada 🇨🇦' },
-      // Add other countries if needed in the future
-  ];
-
   // Update the language options to use lowercase values
   const languageOptions = [
     { value: "", label: "Select Language" },
@@ -496,6 +501,37 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen w-full bg-[#e0f2fe]">
+        {currentStep === 'countrySelect' && (
+          <div className="flex flex-col lg:flex-row min-h-screen">
+            <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center">
+              <div className="max-w-xl mx-auto space-y-8">
+                <h1 className="text-2xl md:text-3xl font-bold text-center">
+                  Which country are you from?
+                </h1>
+                <p className="text-gray-700 text-center">
+                  Please select your country to continue.
+                </p>
+
+                <div className="flex flex-col items-center space-y-4">
+                  <Button
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-3 text-lg font-medium w-72"
+                    onClick={() => { setUserCountry('US'); setCurrentStep('intro'); }}
+                  >
+                    United States 🇺🇸
+                  </Button>
+                  <Button
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-3 text-lg font-medium w-72"
+                    onClick={() => { setUserCountry('CA'); setCurrentStep('intro'); }}
+                  >
+                    Canada 🇨🇦
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
+          </div>
+        )}
+
         {currentStep === 'intro' && (
           <div className="flex flex-col lg:flex-row min-h-screen">
             {/* Left half - Text content */}
@@ -531,35 +567,37 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Option 2 */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-semibold text-center">Option 2: I want the PDF + FREE Flashcard Set!</h2>
-                    <p className="text-gray-700 text-center">A great mixture of fun and learning</p>
-                  </div>
+                {/* Option 2 - US only (we cannot ship the flashcard bonus to Canada) */}
+                {userCountry === 'US' && (
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-semibold text-center">Option 2: I want the PDF + FREE Flashcard Set!</h2>
+                      <p className="text-gray-700 text-center">A great mixture of fun and learning</p>
+                    </div>
 
-                  <div className="h-32 w-96 flex mx-auto">
-                  <img
-                      src={Booklet}
-                      alt="Spanish Flashcard Set"
-                      className="w-full h-full object-contain bg-transparent"
-                    />
+                    <div className="h-32 w-96 flex mx-auto">
                     <img
-                      src={Intro}
-                      alt="Spanish Flashcard Set"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
+                        src={Booklet}
+                        alt="Spanish Flashcard Set"
+                        className="w-full h-full object-contain bg-transparent"
+                      />
+                      <img
+                        src={Intro}
+                        alt="Spanish Flashcard Set"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
 
-                  <div className="flex justify-center">
-                    <Button
-                      className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
-                      onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
-                    >
-                      Continue to Bonus
-                    </Button>
+                    <div className="flex justify-center">
+                      <Button
+                        className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
+                        onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
+                      >
+                        Continue to Bonus
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -619,13 +657,15 @@ export default function App() {
                       Send Me the PDF
                     </Button>
 
-                    <Button
-                      type="button"
-                      className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                      onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
-                    >
-                      Get Bonus Flashcard Set
-                    </Button>
+                    {userCountry === 'US' && (
+                      <Button
+                        type="button"
+                        className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
+                        onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
+                      >
+                        Get Bonus Flashcard Set
+                      </Button>
+                    )}
 
                     <Button
                       type="button"
@@ -642,7 +682,7 @@ export default function App() {
           </div>
         )}
 
-        {currentStep === 'bonusForm' && (
+        {currentStep === 'bonusForm' && userCountry === 'US' && (
           <div className="flex flex-col lg:flex-row min-h-screen">
             <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
               <div className="max-w-xl mx-auto space-y-8">
@@ -727,44 +767,32 @@ export default function App() {
                         )}
                     </div>
 
-                    {/* Country (Dropdown) */}
+                    {/* Country - locked to USA (we cannot ship the bonus to Canada) */}
                     <div className="space-y-2">
-                       {renderSelectInput(
-                           "Select Country",
-                           "address.country",
-                           <Globe size={20} />,
-                           countryOptions,
-                           () => validateField('address.country', formData.address?.country, z.string().min(1, "Country is required"))
-                       )}
+                      <div className="relative w-full">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Globe size={20} />
+                        </div>
+                        <div className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-700">
+                          United States 🇺🇸
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">The flashcard bonus ships to USA addresses only.</p>
                     </div>
 
-                    {/* Zip/Postal Code */}
+                    {/* Zip Code (US only) */}
                      <div className="space-y-2">
                       {renderFormInput(
-                        "Zip/Postal Code",
+                        "Zip Code",
                         "address.zipCode",
                         <MapPin size={20} />,
                         "text",
                          () => {
                              const usZipRegex = /^\d{5}(-\d{4})?$/;
-                             const caPostalCodeRegex = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
-
                              validateField('address.zipCode', formData.address?.zipCode,
-                                z.string().refine(value => {
-                                if (formData.address?.country === 'US') {
-                                    return usZipRegex.test(value || '');
-                                }
-                                if (formData.address?.country === 'CA') {
-                                     const cleanedValue = value?.replace(/[- ]/g, '') || '';
-                                     return caPostalCodeRegex.test(cleanedValue);
-                                }
-                                return (value || '').length > 0;
-                                }, "Invalid Zip/Postal Code for selected country.")
+                                z.string().refine(value => usZipRegex.test(value || ''), "Please enter a valid US Zip Code (e.g., 12345 or 12345-6789).")
                              );
-
-                             if (formData.address?.country === 'US' || formData.address?.country === 'CA') {
-                                 validateField('address.state', formData.address?.state, z.string().min(1, "State/Province is required"));
-                             }
+                             validateField('address.state', formData.address?.state, z.string().min(1, "State is required"));
                          }
                       )}
                     </div>
@@ -834,16 +862,20 @@ export default function App() {
                   <p>CHECK YOUR INBOX FOR THE DOWNLOADABLE LINK - AND GET READY TO POWER UP YOUR LANGUAGE SKILLS.</p>
                   <p className="font-semibold">DIDN'T RECEIVE IT?</p>
                   <p>CHECK YOUR SPAM/JUNK FOLDER.</p>
-                  <p>WANT TO GO FURTHER? YOU CAN STILL REQUEST THE FULL BONUS SET BELOW!</p>
+                  {userCountry === 'US' && (
+                    <p>WANT TO GO FURTHER? YOU CAN STILL REQUEST THE FULL BONUS SET BELOW!</p>
+                  )}
                 </div>
 
                 <div className="space-y-4">
-                  <Button
-                    className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
-                    onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
-                  >
-                    Get Bonus Flashcard Set
-                  </Button>
+                  {userCountry === 'US' && (
+                    <Button
+                      className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2 text-lg font-medium"
+                      onClick={() => { setSelectedOption('bonus'); setCurrentStep('bonusForm'); }}
+                    >
+                      Get Bonus Flashcard Set
+                    </Button>
+                  )}
 
                   <Button
                     className="w-full rounded-full bg-transparent hover:bg-gray-100 text-gray-700 py-2 text-lg font-medium border border-gray-300"
