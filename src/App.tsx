@@ -52,8 +52,8 @@ const useAppStore = create<AppStore>((set) => ({
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<'countrySelect' | 'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('countrySelect');
-  const [userCountry, setUserCountry] = useState<'US' | 'CA' | null>(null);
+  const [currentStep, setCurrentStep] = useState<'detecting' | 'intro' | 'pdfForm' | 'pdfThankYou' | 'bonusForm' | 'bonusThankYou'>('detecting');
+  const [userCountry, setUserCountry] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean } | null>(null);
   const { setSelectedOption, formData, setFormData, setAddressFormData } = useAppStore();
@@ -79,6 +79,39 @@ export default function App() {
       setAddressFormData({ country: 'US' });
     }
   }, [currentStep, userCountry, setAddressFormData]);
+
+  // Auto-detect visitor country by IP on first mount. The bonus ships only to
+  // the USA, so anything other than a confirmed 'US' result (including errors,
+  // timeouts, or blocked requests) falls back to non-US → PDF-only.
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    (async () => {
+      try {
+        const response = await fetch('/api/geo', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (data?.country === 'US') {
+          setUserCountry('US');
+        } else {
+          setUserCountry('NON_US');
+        }
+      } catch {
+        setUserCountry('NON_US');
+      } finally {
+        clearTimeout(timeoutId);
+        setCurrentStep('intro');
+      }
+    })();
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, []);
 
   const API_BASE_URL = 'https://studykey-riddles-server.vercel.app';
 
@@ -501,31 +534,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen w-full bg-[#e0f2fe]">
-        {currentStep === 'countrySelect' && (
+        {currentStep === 'detecting' && (
           <div className="flex flex-col lg:flex-row min-h-screen">
             <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center">
-              <div className="max-w-xl mx-auto space-y-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-center">
-                  Which country are you from?
-                </h1>
-                <p className="text-gray-700 text-center">
-                  Please select your country to continue.
-                </p>
-
-                <div className="flex flex-col items-center space-y-4">
-                  <Button
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-3 text-lg font-medium w-72"
-                    onClick={() => { setUserCountry('US'); setCurrentStep('intro'); }}
-                  >
-                    United States 🇺🇸
-                  </Button>
-                  <Button
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-3 text-lg font-medium w-72"
-                    onClick={() => { setUserCountry('CA'); setCurrentStep('intro'); }}
-                  >
-                    Canada 🇨🇦
-                  </Button>
-                </div>
+              <div className="max-w-xl mx-auto space-y-6 flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-[#ff5733] border-t-transparent rounded-full animate-spin" />
+                <p className="text-lg text-gray-700 text-center">Loading your gift options…</p>
               </div>
             </div>
             <ImageSection image1={Image1} image2={Image2} image3={Image3} />
@@ -542,10 +556,12 @@ export default function App() {
                   just for you!
                 </h1>
 
-                {/* Option 1 */}
+                {/* PDF offer — labelled "Option 1" only when the bonus (Option 2) is also shown */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold text-center">Option 1: I want the FREE E-BOOK only</h2>
+                    <h2 className="text-lg font-semibold text-center">
+                      {userCountry === 'US' ? 'Option 1: I want the FREE E-BOOK only' : 'Get your FREE E-BOOK'}
+                    </h2>
                     <p className="text-gray-700 text-center">A fast boost for your Spanish practice</p>
                   </div>
 
