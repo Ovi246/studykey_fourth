@@ -8,8 +8,8 @@ import Image2 from "./assets/intro_2.jpeg"
 import Image3 from "./assets/intro_3.jpeg"
 
 // PDF download links — replace the # placeholders with real URLs when ready
-const PDF_LINK_ENGLISH = '#';
-const PDF_LINK_SPANISH = '#';
+const PDF_LINK_ENGLISH = 'https://go.studykey.ca/english-pdf';
+const PDF_LINK_SPANISH = 'https://go.studykey.ca/spanish-pdf';
 
 export default function App() {
   return (
