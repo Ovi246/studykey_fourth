@@ -7,6 +7,7 @@ import { Button } from "./components/ui/button";
 import { Mail, User, Globe, Package, MapPin, ShoppingBag } from 'lucide-react';
 import { ImageSection } from './components/ImageSection';
 import Booklet from "./assets/booklet.png"
+import SoulDelightBox from "./assets/studykey_box.png"
 import Image1 from "./assets/intro_1.jpeg"
 import Image2 from "./assets/intro_2.jpeg"
 import Image3 from "./assets/intro_3.jpeg"
@@ -490,9 +491,10 @@ export default function App() {
 
               {userCountry === 'US' && (
                 <div className="pt-6 mt-6 border-t border-gray-300 space-y-3 text-center">
-                  <h2 className="text-lg font-semibold">Want a FREE Flashcard Set too?</h2>
+                  <h2 className="text-lg font-semibold">Want a Flashcard Set too?</h2>
+                  <img src={SoulDelightBox} alt="Soul Delight Box" className="w-48 mx-auto object-contain" />
                   <p className="text-gray-700">
-                    Available to US customers — claim your bonus flashcard set on top of your eBook.
+                    Join our test group — let us know what you think of this set.
                   </p>
                   <Button
                     className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
