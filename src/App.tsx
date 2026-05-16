@@ -445,44 +445,42 @@ export default function App() {
       )}
 
       {currentStep === 'landing' && (
-        <div className="flex flex-col lg:flex-row min-h-screen">
-          <div className="w-full lg:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center items-center">
-            <div className="w-full max-w-2xl mx-auto space-y-8">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center leading-tight">
+        <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
+          <div className="w-full lg:w-1/2 h-full flex flex-col justify-center items-center p-5 md:p-8 lg:p-10 overflow-y-auto">
+            <div className="w-full max-w-xl mx-auto space-y-3">
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-center leading-snug">
                 Thank you for your purchase! Here is your additional learning material to help you learn faster!
               </h1>
 
-              <div className="text-center">
-                <h2 className="text-2xl md:text-3xl font-semibold">Get your eBook</h2>
+              <h2 className="text-lg md:text-xl font-semibold text-center">Get your eBook</h2>
+
+              <div className="w-full max-w-xs mx-auto">
+                <img src={Booklet} alt="Spanish E-Books" className="w-full h-28 md:h-36 object-contain" />
               </div>
 
-              <div className="w-full max-w-sm mx-auto">
-                <img src={Booklet} alt="Spanish E-Books" className="w-full h-64 md:h-72 object-contain" />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <p className="text-base md:text-lg text-gray-600 text-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-sm text-gray-600 text-center">
                     Si estás aprendiendo inglés, descarga este enlace.
                   </p>
                   <a
                     href={PDF_LINK_ENGLISH}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-10 py-4 text-lg md:text-xl font-medium text-center transition-colors duration-200"
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2.5 text-base font-medium text-center transition-colors duration-200"
                   >
                     📘 English PDF
                   </a>
                 </div>
-                <div className="flex flex-col items-center gap-3">
-                  <p className="text-base md:text-lg text-gray-600 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-sm text-gray-600 text-center">
                     If you're learning Spanish, download this link.
                   </p>
                   <a
                     href={PDF_LINK_SPANISH}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-10 py-4 text-lg md:text-xl font-medium text-center transition-colors duration-200"
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2.5 text-base font-medium text-center transition-colors duration-200"
                   >
                     📗 Spanish PDF
                   </a>
@@ -490,27 +488,29 @@ export default function App() {
               </div>
 
               {userCountry === 'US' && (
-                <div className="pt-8 mt-8 border-t border-gray-300 space-y-6 text-center">
-                  <h2 className="text-2xl md:text-3xl font-semibold">Want a Flashcard Set too?</h2>
+                <div className="pt-4 mt-1 border-t border-gray-300 space-y-3 text-center">
+                  <h2 className="text-lg md:text-xl font-semibold">Want a Flashcard Set too?</h2>
                   <img
                     src={SoulDelightBox}
                     alt="Soul Delight Box"
-                    className="w-full max-w-xs md:max-w-sm lg:max-w-md mx-auto object-contain"
+                    className="w-full max-w-[200px] md:max-w-[260px] lg:max-w-[300px] mx-auto object-contain"
                   />
-                  <p className="text-lg md:text-xl text-gray-700">
+                  <p className="text-base md:text-lg text-gray-700">
                     Join our test group — let us know what you think of this set.
                   </p>
                   <Button
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-12 py-4 text-lg md:text-xl font-medium"
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-10 py-2.5 text-base md:text-lg font-medium"
                     onClick={() => setCurrentStep('bonusForm')}
                   >
-                    Continue to Bonus
+                    Continue to Claim
                   </Button>
                 </div>
               )}
             </div>
           </div>
-          <ImageSection image1={Image1} image2={Image2} image3={Image3} />
+          <div className="hidden lg:block lg:w-1/2 h-full">
+            <ImageSection image1={Image1} image2={Image2} image3={Image3} />
+          </div>
         </div>
       )}
 
