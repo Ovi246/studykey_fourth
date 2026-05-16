@@ -48,7 +48,7 @@ const useAppStore = create<AppStore>((set) => ({
 type Step = 'detecting' | 'landing' | 'bonusForm' | 'bonusThankYou';
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<Step>('bonusForm');
+  const [currentStep, setCurrentStep] = useState<Step>('detecting');
   const [userCountry, setUserCountry] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationStatus, setValidationStatus] = useState<{ isValid: boolean } | null>(null);
@@ -64,10 +64,10 @@ export default function App() {
   // US-only bonus: lock the address country and bounce non-US visitors out.
   useEffect(() => {
     if (currentStep === 'detecting') {
-      // if (userCountry !== 'US') {
-      //   setCurrentStep('landing');
-      //   return;
-      // }
+      if (userCountry !== 'US') {
+        setCurrentStep('landing');
+        return;
+      }
       setAddressFormData({ country: 'US' });
     }
   }, [currentStep, userCountry, setAddressFormData]);
@@ -78,21 +78,21 @@ export default function App() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    // (async () => {
-    //   try {
-    //     const response = await fetch('/api/geo', {
-    //       cache: 'no-store',
-    //       signal: controller.signal,
-    //     });
-    //     const data = await response.json();
-    //     setUserCountry(data?.country === 'US' ? 'US' : 'NON_US');
-    //   } catch {
-    //     setUserCountry('NON_US');
-    //   } finally {
-    //     clearTimeout(timeoutId);
-    //     setCurrentStep('landing');
-    //   }
-    // })();
+    (async () => {
+      try {
+        const response = await fetch('/api/geo', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        setUserCountry(data?.country === 'US' ? 'US' : 'NON_US');
+      } catch {
+        setUserCountry('NON_US');
+      } finally {
+        clearTimeout(timeoutId);
+        setCurrentStep('landing');
+      }
+    })();
 
     return () => {
       clearTimeout(timeoutId);
