@@ -446,43 +446,43 @@ export default function App() {
 
       {currentStep === 'landing' && (
         <div className="flex flex-col lg:flex-row min-h-screen">
-          <div className="w-full lg:w-1/2 p-6 lg:p-12 flex flex-col justify-center items-center">
-            <div className="max-w-xl mx-auto space-y-4">
-              <h1 className="text-2xl md:text-3xl font-bold text-center">
+          <div className="w-full lg:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center items-center">
+            <div className="w-full max-w-2xl mx-auto space-y-8">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center leading-tight">
                 Thank you for your purchase! Here is your additional learning material to help you learn faster!
               </h1>
 
-              <div className="space-y-1 text-center">
-                <h2 className="text-lg font-semibold">Get your eBook</h2>
+              <div className="text-center">
+                <h2 className="text-2xl md:text-3xl font-semibold">Get your eBook</h2>
               </div>
 
-              <div className="w-72 mx-auto">
-                <img src={Booklet} alt="Spanish E-Books" className="w-full h-52 object-contain" />
+              <div className="w-full max-w-sm mx-auto">
+                <img src={Booklet} alt="Spanish E-Books" className="w-full h-64 md:h-72 object-contain" />
               </div>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-sm text-gray-600 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-base md:text-lg text-gray-600 text-center">
                     Si estás aprendiendo inglés, descarga este enlace.
                   </p>
                   <a
                     href={PDF_LINK_ENGLISH}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-3 text-lg font-medium text-center transition-colors duration-200"
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-10 py-4 text-lg md:text-xl font-medium text-center transition-colors duration-200"
                   >
                     📘 English PDF
                   </a>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-sm text-gray-600 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-base md:text-lg text-gray-600 text-center">
                     If you're learning Spanish, download this link.
                   </p>
                   <a
                     href={PDF_LINK_SPANISH}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-3 text-lg font-medium text-center transition-colors duration-200"
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-10 py-4 text-lg md:text-xl font-medium text-center transition-colors duration-200"
                   >
                     📗 Spanish PDF
                   </a>
@@ -490,14 +490,18 @@ export default function App() {
               </div>
 
               {userCountry === 'US' && (
-                <div className="pt-6 mt-6 border-t border-gray-300 space-y-3 text-center">
-                  <h2 className="text-lg font-semibold">Want a Flashcard Set too?</h2>
-                  <img src={SoulDelightBox} alt="Soul Delight Box" className="w-48 mx-auto object-contain" />
-                  <p className="text-gray-700">
+                <div className="pt-8 mt-8 border-t border-gray-300 space-y-6 text-center">
+                  <h2 className="text-2xl md:text-3xl font-semibold">Want a Flashcard Set too?</h2>
+                  <img
+                    src={SoulDelightBox}
+                    alt="Soul Delight Box"
+                    className="w-full max-w-xs md:max-w-sm lg:max-w-md mx-auto object-contain"
+                  />
+                  <p className="text-lg md:text-xl text-gray-700">
                     Join our test group — let us know what you think of this set.
                   </p>
                   <Button
-                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-8 py-2 text-lg font-medium"
+                    className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-12 py-4 text-lg md:text-xl font-medium"
                     onClick={() => setCurrentStep('bonusForm')}
                   >
                     Continue to Bonus
