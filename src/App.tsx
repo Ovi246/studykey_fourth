@@ -508,7 +508,7 @@ export default function App() {
               )}
             </div>
           </div>
-          <div className="hidden lg:block lg:w-1/2 h-full">
+          <div className="hidden lg:contents">
             <ImageSection image1={Image1} image2={Image2} image3={Image3} />
           </div>
         </div>
