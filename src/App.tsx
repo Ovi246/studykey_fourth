@@ -62,17 +62,6 @@ export default function App() {
     setFieldErrors({});
   }, [currentStep]);
 
-  // US-only bonus: lock the address country and bounce non-US visitors out.
-  useEffect(() => {
-    if (currentStep === 'detecting') {
-      if (userCountry !== 'US') {
-        setCurrentStep('landing');
-        return;
-      }
-      setAddressFormData({ country: 'US' });
-    }
-  }, [currentStep, userCountry, setAddressFormData]);
-
   // Detect visitor country by IP. Anything other than a confirmed 'US' (errors,
   // timeouts, blocked requests) falls back to NON_US → no bonus path shown.
   useEffect(() => {
@@ -86,7 +75,11 @@ export default function App() {
           signal: controller.signal,
         });
         const data = await response.json();
-        setUserCountry(data?.country === 'US' ? 'US' : 'NON_US');
+        const detectedCountry = data?.country === 'US' ? 'US' : 'NON_US';
+        setUserCountry(detectedCountry);
+        if (detectedCountry === 'US') {
+          setAddressFormData({ country: 'US' });
+        }
       } catch {
         setUserCountry('NON_US');
       } finally {
@@ -514,7 +507,7 @@ export default function App() {
         </div>
       )}
 
-      {currentStep === 'bonusForm' && (
+      {currentStep === 'bonusForm' && userCountry === 'US' && (
         <div className="flex flex-col lg:flex-row min-h-screen">
           <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
             <div className="max-w-xl mx-auto space-y-8">
