@@ -482,10 +482,7 @@ export default function App() {
 
               {userCountry === 'US' && (
                 <div className="pt-4 mt-1 border-t border-gray-300 space-y-3 text-center">
-                  <h2 className="font-semibold text-center leading-snug">
-                    <span className="block text-xl md:text-2xl lg:text-3xl">Get your downloadable learning materials</span>
-                    <span className="block text-base md:text-lg text-gray-600 mt-1">plus an exclusive item on us for a limited time</span>
-                  </h2>
+                  <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-center">plus an exclusive item on us for a limited time</h2>
                   <img
                     src={SoulDelightBox}
                     alt="Soul Delight Box"
