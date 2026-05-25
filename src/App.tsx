@@ -492,7 +492,7 @@ export default function App() {
                     className="w-full max-w-[200px] md:max-w-[260px] lg:max-w-[300px] mx-auto object-contain"
                   />
                   <p className="text-base md:text-lg text-gray-700">
-                    Join our test group — let us know what you think of this set.
+                    Let's get you your exclusive set.
                   </p>
                   <Button
                     className="rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white px-10 py-2.5 text-base md:text-lg font-medium"
@@ -515,8 +515,7 @@ export default function App() {
           <div className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
             <div className="max-w-xl mx-auto space-y-8">
               <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold">Join Our Test Group</h2>
-                <p className="text-gray-600">Let us know what you think of this set</p>
+                <h2 className="text-2xl font-bold">Let's get you your exclusive set</h2>
               </div>
 
               <form onSubmit={handleBonusSubmit} className="space-y-6">
