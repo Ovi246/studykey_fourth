@@ -11,31 +11,12 @@ import Image3 from "./assets/intro_3.jpeg";
 import EnglishCover from "./assets/english-cover_page.jpg";
 import SpanishCover from "./assets/spanish-cover_page.jpg";
 
-const getApiBaseUrl = (): string | undefined => {
-  const runtimeProcess =
-    typeof globalThis !== "undefined"
-      ? (
-          globalThis as typeof globalThis & {
-            process?: {
-              env?: Record<string, string | undefined>;
-            };
-          }
-        ).process
-      : undefined;
-
-  const nextPublicApiBaseUrl =
-    runtimeProcess?.env?.NEXT_PUBLIC_API_BASE_URL?.trim();
-
-  const viteApiBaseUrl =
-    typeof import.meta !== "undefined"
-      ? import.meta.env.VITE_API_BASE_URL?.trim()
-      : undefined;
-
-  return nextPublicApiBaseUrl || viteApiBaseUrl;
-};
-
 // Your Express server receives { email, pdf } here and emails the chosen PDF.
-const API_BASE_URL = getApiBaseUrl() ;
+// Set VITE_API_BASE_URL in Vercel → Settings → Environment Variables (the name
+// MUST start with VITE_). Vite inlines it at BUILD time, so redeploy after any
+// change. Falls back to the production server if the var is unset.
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL?.trim();
 const PDF_REQUEST_PATH = '/request-pdf';
 
 export default function App() {
