@@ -164,6 +164,9 @@ export default function App() {
                         ✓
                       </span>
                     )}
+                    <span className="text-sm font-semibold text-gray-700">
+                      Learning Spanish
+                    </span>
                     <img
                       src={EnglishCover}
                       alt="English learning PDF cover"
@@ -187,6 +190,9 @@ export default function App() {
                         ✓
                       </span>
                     )}
+                    <span className="text-sm font-semibold text-gray-700">
+                      Aprendiendo inglés
+                    </span>
                     <img
                       src={SpanishCover}
                       alt="Spanish learning PDF cover"
