@@ -72,8 +72,12 @@ export default function App() {
           cache: "no-store",
           signal: controller.signal,
         });
+        if (!response.ok) {
+          setUserCountry("NON_US");
+          return;
+        }
         const data = await response.json();
-        setUserCountry(data?.country === "US" ? "US" : "US");
+        setUserCountry(data?.country === "US" ? "US" : "NON_US");
       } catch {
         setUserCountry("NON_US");
       } finally {
