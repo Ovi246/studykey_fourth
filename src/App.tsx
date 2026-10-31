@@ -198,6 +198,10 @@ export default function App() {
 
   const updateBonusField = (field: keyof BonusFormData, value: string) => {
     setBonusForm((prev) => ({ ...prev, [field]: value }));
+    // An edited order ID must be re-validated before submit.
+    if (field === "amazonOrder") {
+      setOrderValid(null);
+    }
     if (bonusFieldErrors[field]) {
       setBonusFieldErrors((prev) => {
         const next = { ...prev };
@@ -222,11 +226,11 @@ export default function App() {
     updateBonusField("phoneNumber", formatted.substring(0, 14));
   };
 
-  const validateOrderId = async () => {
+  const validateOrderId = async (): Promise<boolean> => {
     const orderId = bonusForm.amazonOrder.trim();
     if (!orderId) {
       setOrderValid(null);
-      return;
+      return false;
     }
     setIsValidatingOrder(true);
     setOrderValid(null);
@@ -238,13 +242,15 @@ export default function App() {
         body: JSON.stringify({ orderId }),
       });
       const data = await response.json();
-      setOrderValid(Boolean(data.valid));
-      if (!data.valid) {
+      const valid = Boolean(data.valid);
+      setOrderValid(valid);
+      if (!valid) {
         setBonusFieldErrors((prev) => ({
           ...prev,
           amazonOrder: "Invalid order ID. Please check and try again.",
         }));
       }
+      return valid;
     } catch (error) {
       console.error(error);
       setOrderValid(false);
@@ -252,6 +258,7 @@ export default function App() {
         ...prev,
         amazonOrder: "Error validating order ID. Please try again.",
       }));
+      return false;
     } finally {
       setIsValidatingOrder(false);
     }
@@ -291,6 +298,13 @@ export default function App() {
       });
       setBonusFieldErrors(errors);
       setBonusErrorMessage("Please fix the errors above before submitting.");
+      return;
+    }
+
+    // Only reach /bonus-claim with an order ID the SP API confirmed.
+    const isOrderValid = orderValid === true || (await validateOrderId());
+    if (!isOrderValid) {
+      setBonusErrorMessage("Please enter a valid Amazon order ID.");
       return;
     }
 
@@ -787,7 +801,7 @@ export default function App() {
 
                     <Button
                       type="submit"
-                      disabled={bonusSubmitting}
+                      disabled={bonusSubmitting || isValidatingOrder}
                       className="w-full rounded-full bg-[#ff5733] hover:bg-[#e64a2e] text-white py-2.5 text-base font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {bonusSubmitting ? "Submitting…" : "Submit Claim"}
